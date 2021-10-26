@@ -9,9 +9,20 @@
 #include <string.h>
 
 
-#define TRACE(a...) dprintf("ahci: " a)
-//#define FLOW(a...)	dprintf("ahci: " a)
+//#define TRACE_AHCI
+#ifdef TRACE_AHCI
+#define TRACE(a...)	dprintf("ahci: " a)
+#else
+#define TRACE(a...)	;
+#endif
+
+//#define TRACE_AHCI_FLOW
+#ifdef TRACE_AHCI_FLOW
+#define FLOW(a...)	dprintf("ahci: " a)
+#else
 #define FLOW(a...)
+#endif
+
 
 #define AHCI_ID_GENERATOR "ahci/id"
 #define AHCI_ID_ITEM "ahci/id"
