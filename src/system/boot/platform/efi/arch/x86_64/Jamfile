@@ -34,5 +34,8 @@ for platform in [ MultiBootSubDirSetup efi ] {
 
 	SEARCH on [ FGristFiles arch_smp.cpp ]
 		= [ FDirName $(HAIKU_TOP) src system boot platform efi arch x86 ] ;
+
+	SEARCH on [ FGristFiles arch_timer.cpp ]
+		= [ FDirName $(HAIKU_TOP) src system boot platform efi arch x86 ] ;
 	}
 }
