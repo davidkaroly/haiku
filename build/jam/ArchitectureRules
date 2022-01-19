@@ -358,6 +358,10 @@ rule KernelArchitectureSetup architecture
 		}
 
 		ccBaseFlags += -ffreestanding ;
+
+		# No omit frame pointer so stack traces in kernel + bootloader are
+		# always complete (with a minor performance impact)
+		ccBaseFlags += -fno-omit-frame-pointer ;
 	}
 
 	local c++BaseFlags = $(ccBaseFlags) -fno-exceptions ;
@@ -462,10 +466,9 @@ rule KernelArchitectureSetup architecture
 			HAIKU_KERNEL_PIC_CCFLAGS = -fno-pic -mcmodel=kernel ;
 
 			# Disable the red zone, which cannot be used in kernel code due to
-			# interrupts, and always enable the frame pointer so stack traces
-			# are correct.
-			HAIKU_KERNEL_CCFLAGS += -mno-red-zone -fno-omit-frame-pointer ;
-			HAIKU_KERNEL_C++FLAGS += -mno-red-zone -fno-omit-frame-pointer ;
+			# interrupts.
+			HAIKU_KERNEL_CCFLAGS += -mno-red-zone ;
+			HAIKU_KERNEL_C++FLAGS += -mno-red-zone  ;
 			HAIKU_KERNEL_PIC_LINKFLAGS += -z max-page-size=0x1000 ;
 			HAIKU_KERNEL_ADDON_LINKFLAGS += -z max-page-size=0x1000 ;
 
@@ -566,8 +569,8 @@ rule KernelArchitectureSetup architecture
 					# TODO: coldfire (FireBee)
 				}
 			case riscv :
-				HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -mcmodel=medany -fno-omit-frame-pointer -fno-plt -fno-pic -fno-semantic-interposition ;
-				HAIKU_BOOT_$(bootTarget:U)_C++FLAGS += -mcmodel=medany -fno-omit-frame-pointer -fno-plt -fno-pic -fno-semantic-interposition ;
+				HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -mcmodel=medany -fno-plt -fno-pic -fno-semantic-interposition ;
+				HAIKU_BOOT_$(bootTarget:U)_C++FLAGS += -mcmodel=medany -fno-plt -fno-pic -fno-semantic-interposition ;
 			case openfirmware :
 				HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -fno-pic -fno-semantic-interposition -Wno-error=main -Wstack-usage=1023 ;
 				HAIKU_BOOT_$(bootTarget:U)_C++FLAGS += -fno-pic -fno-semantic-interposition -Wno-error=main -Wstack-usage=1023 ;
