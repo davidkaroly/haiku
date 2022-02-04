@@ -195,6 +195,19 @@ actions BuildUImage1
     mkimage $(MKIMAGE_ARGS) -d $(>:J=$(colon)) $(<)
 }
 
+rule BuildUImageLoader image : data : args
+{
+	Depends $(image) : $(data)_raw ;
+	Depends $(data)_raw : $(data) ;
+	BuildUImageLoader1 $(data)_raw : $(data) ;
+	BuildUImage $(image) : $(data)_raw : $(args) ;
+}
+
+actions BuildUImageLoader1
+{
+	$(TARGET_OBJCOPY_$(TARGET_KERNEL_ARCH)) $(2) $(1) -O binary
+}
+
 #
 # Given a txt, generate a binary u-boot script
 #
@@ -423,7 +436,7 @@ for platform in [ MultiBootSubDirSetup ] {
 
 			case u-boot :
 				local loader_entry = `printf \"obase=16;ibase=16;10 + %x\\n\" $(HAIKU_BOOT_LOADER_BASE)|bc` ;
-				BuildUImage haiku_loader.$(TARGET_BOOT_PLATFORM) : <revisioned>boot_loader_$(TARGET_BOOT_PLATFORM)
+				BuildUImageLoader haiku_loader.$(TARGET_BOOT_PLATFORM) : <revisioned>boot_loader_$(TARGET_BOOT_PLATFORM)
 					:
 					-A $(TARGET_ARCH) -O linux -T kernel -C none
 					-a $(HAIKU_BOOT_LOADER_BASE) -e $(loader_entry)
