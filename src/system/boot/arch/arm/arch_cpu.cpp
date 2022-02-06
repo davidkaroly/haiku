@@ -28,6 +28,62 @@
 #endif
 
 
+uint32_t
+get_cpu_features(void)
+{
+	uint32_t result;
+	asm volatile("MRC p15, 0, %0, c0, c0, 0": "=r" (result));
+	return result;
+}
+
+
+uint32_t
+get_cpu_id_pfr0(void)
+{
+	uint32_t result;
+	asm volatile("MRC p15, 0, %0, c0, c1, 0": "=r" (result));
+	return result;
+}
+
+
+uint32_t
+get_cpu_id_pfr1(void)
+{
+	uint32_t result;
+	asm volatile("MRC p15, 0, %0, c0, c1, 1": "=r" (result));
+	return result;
+}
+
+
+bool
+is_counter_available(void)
+{
+	return (get_cpu_id_pfr1() & 0x000F0000) == 0x00010000;
+}
+
+
+uint32_t
+get_counter_freq(void)
+{
+	uint32_t freq;
+	asm volatile ("MRC p15, 0, %0, c14, c0, 0": "=r" (freq));
+	return freq;
+}
+
+
+uint64_t
+get_counter(void)
+{
+	uint32_t counter_low;
+	uint32_t counter_high;
+
+	asm volatile ("ISB\n"
+		"MRRC p15, 0, %0, %1, c14"
+		: "=r" (counter_low), "=r" (counter_high));
+	return ((uint64_t)counter_high << 32) | counter_low;
+}
+
+
 /*! Detect ARM core version and features.
     Please note the fact that ARM7 and ARMv7 are two different things ;)
     ARMx is a specific ARM CPU core instance, while ARMvX refers to the
@@ -37,17 +93,15 @@
     never run on, just included for completeness sake... ARMv5 and up are
     the likely ones for us to support (as they all have some kind of MMU).
 */
-static status_t
+status_t
 check_cpu_features()
 {
-	uint32 result = 0;
+	uint32 result = get_cpu_features();
 	int arch = 0;
 	int variant = 0;
 	int part = 0;
 	int revision = 0;
 	int implementor = 0;
-
-	asm volatile("MRC p15, 0, %[c1out], c0, c0, 0":[c1out] "=r" (result));
 
 	implementor = (result >> 24) & 0xff;
 
