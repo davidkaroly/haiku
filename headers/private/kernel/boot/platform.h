@@ -27,6 +27,7 @@ extern status_t platform_init_heap(struct stage2_args *args, void **_base, void 
 /* MMU/memory functions */
 extern status_t platform_allocate_region(void **_virtualAddress, size_t size,
 	uint8 protection, bool exactAddress);
+extern status_t platform_allocate_lomem(void **_address, size_t size);
 extern status_t platform_free_region(void *address, size_t size);
 extern status_t platform_bootloader_address_to_kernel_address(void *address, addr_t *_result);
 extern status_t platform_kernel_address_to_bootloader_address(addr_t address, void **_result);

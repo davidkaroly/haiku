@@ -249,7 +249,7 @@ rule KernelArchitectureSetup architecture
 
 		case arm :
 			HAIKU_KERNEL_PLATFORM ?= efi ;
-			HAIKU_BOOT_TARGETS += efi ;
+			HAIKU_BOOT_TARGETS += efi virt ;
 
 			# SOC's like allwinner need an offset to skip the hardcoded initial loader
 			HAIKU_BOOT_SDIMAGE_BEGIN = 20475 ; # in KiB

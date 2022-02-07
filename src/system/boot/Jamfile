@@ -454,6 +454,9 @@ for platform in [ MultiBootSubDirSetup ] {
 			case next_m68k :
 				BuildAoutLoader haiku_loader.$(TARGET_BOOT_PLATFORM) : <revisioned>boot_loader_$(TARGET_BOOT_PLATFORM) ;
 
+			case virt :
+				BuildBiosLoader haiku_loader.$(TARGET_BOOT_PLATFORM) : boot_loader_$(TARGET_BOOT_PLATFORM) ;
+
 			case * :
 				Exit "Currently unsupported haiku_loader:" $(TARGET_BOOT_PLATFORM) ;
 		}

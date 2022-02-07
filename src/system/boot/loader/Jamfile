@@ -31,11 +31,22 @@ for platform in [ MultiBootSubDirSetup ] {
 				BOOT_SUPPORT_FILE_SYSTEM_FAT
 			;
 
-			if $(TARGET_BOOT_PLATFORM) = efi {
-				DEFINES +=
-					_BOOT_PLATFORM_EFI
-					BOOT_SUPPORT_PARTITION_EFI
-				;
+			# Add platform specific partition/file system modules
+
+			switch $(TARGET_BOOT_PLATFORM) {
+				case "efi" :
+				{
+					DEFINES +=
+						_BOOT_PLATFORM_EFI
+						BOOT_SUPPORT_PARTITION_EFI
+					;
+				}
+				case "virt" :
+				{
+					DEFINES +=
+						BOOT_SUPPORT_PARTITION_EFI
+					;
+				}
 			}
 
 			# Add architecture specific partition/file system modules
