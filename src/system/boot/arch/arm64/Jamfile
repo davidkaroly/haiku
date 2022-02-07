@@ -27,7 +27,7 @@ local librootOsArchSources =
 	byteorder.S
 ;
 
-for platform in [ MultiBootSubDirSetup efi ] {
+for platform in [ MultiBootSubDirSetup efi virt ] {
 	on $(platform) {
 		DEFINES += _BOOT_MODE ;
 

@@ -261,7 +261,7 @@ rule KernelArchitectureSetup architecture
 
 		case arm64 :
 			HAIKU_KERNEL_PLATFORM ?= efi ;
-			HAIKU_BOOT_TARGETS += efi ;
+			HAIKU_BOOT_TARGETS += efi virt ;
 
 			HAIKU_BOOT_SDIMAGE_BEGIN = 2 ; # in KiB
 

@@ -1,0 +1,33 @@
+SubDir HAIKU_TOP src system boot platform virt arch arm64 ;
+
+SubDirHdrs $(HAIKU_TOP) src system boot platform virt ;
+
+UseLibraryHeaders [ FDirName libfdt ] ;
+
+UsePrivateHeaders [ FDirName kernel platform ] ;
+UsePrivateHeaders [ FDirName kernel boot arch arm64 ] ;
+UsePrivateHeaders [ FDirName kernel boot platform virt ] ;
+
+local platform ;
+for platform in [ MultiBootSubDirSetup virt ] {
+    on $(platform) {
+	{
+		local defines = _BOOT_MODE ;
+		defines = [ FDefines $(defines) ] ;
+		SubDirCcFlags $(defines) ;
+		SubDirC++Flags $(defines) -fno-rtti ;
+	}
+
+	local arch_src =
+		crt0-virt-arm64.S
+		entry.S
+		arch_dtb.cpp
+		arch_mmu.cpp
+		arch_start.cpp
+		;
+
+	BootMergeObject boot_platform_virt_arm64.o :
+		$(arch_src)
+		;
+	}
+}
