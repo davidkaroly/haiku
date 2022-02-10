@@ -13,10 +13,6 @@
 
 #include "serial.h"
 
-#if defined(__arm__)
-#include <arch/arm/arch_uart_pl011.h>
-#endif
-
 #include <boot/platform.h>
 #include <arch/cpu.h>
 #include <boot/stage2.h>
@@ -35,7 +31,11 @@ static void
 serial_putc(char c)
 {
 	if (sEarlySerialEnabled) {
+#if defined(__arm__) || defined(__aarch64__)
 		*(volatile uint32_t *)0x09000000 = c;
+#elif defined(__riscv)
+		*(volatile uint32_t *)0x10000000 = c;
+#endif
 		return;
 	}
 
@@ -133,8 +133,5 @@ serial_init_early(void)
 extern "C" void
 serial_init(void)
 {
-	//if (gUART == NULL)
-	//	gUART = arch_get_uart_pl011(0x09000000, 0x16e3600);
-
 	serial_enable();
 }

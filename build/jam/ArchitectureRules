@@ -285,7 +285,7 @@ rule KernelArchitectureSetup architecture
 
 		case riscv64 :
 			HAIKU_KERNEL_PLATFORM ?= efi ;
-			HAIKU_BOOT_TARGETS += efi riscv ;
+			HAIKU_BOOT_TARGETS += efi riscv virt ;
 
 			HAIKU_BOOT_SDIMAGE_BEGIN = 2 ; # KiB
 
@@ -579,6 +579,12 @@ rule KernelArchitectureSetup architecture
 			case openfirmware :
 				HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -fno-pic -fno-semantic-interposition -Wno-error=main -Wstack-usage=1023 ;
 				HAIKU_BOOT_$(bootTarget:U)_C++FLAGS += -fno-pic -fno-semantic-interposition -Wno-error=main -Wstack-usage=1023 ;
+			case virt :
+				switch $(cpu) {
+					case riscv64 :
+						HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -mcmodel=medany -fno-plt -fno-pic -fno-semantic-interposition ;
+						HAIKU_BOOT_$(bootTarget:U)_C++FLAGS += -mcmodel=medany -fno-plt -fno-pic -fno-semantic-interposition ;
+				}
 			case * :
 				# all other bootloaders are non-PIC
 				HAIKU_BOOT_$(bootTarget:U)_CCFLAGS += -fno-pic -Wno-error=main ;

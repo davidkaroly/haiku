@@ -122,6 +122,11 @@ platform_allocate_region(void** address, size_t size, uint8 protection,
 	if (region->physAddr == 0)
 		return B_NO_MEMORY;
 
+#ifdef __riscv
+	if (*address == (void *)0x80000000)
+		*address = (void *)KERNEL_LOAD_BASE;
+#endif
+
 	if (*address == NULL)
 		region->virtAddr = allocate_virtual_pages(size);
 	else
