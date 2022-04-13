@@ -573,6 +573,31 @@ dtb_handle_fdt(const void* fdt, int node)
 
 
 static void
+dtb_handle_board_quirks(const void *fdt)
+{
+	int root = fdt_path_offset(fdt, "/");
+	if (root < 0)
+		return;
+
+	int compatibleLen;
+	const char* compatible = (const char*)fdt_getprop(fdt, root,
+		"compatible", &compatibleLen);
+
+	if (compatible == NULL)
+		return;
+
+	if (dtb_has_fdt_string(compatible, compatibleLen,
+			"raspberrypi,4-model-b")) {
+		int stdoutNode = fdt_path_offset(fdt, "serial0");
+		if (stdoutNode < 0)
+			return;
+
+		dtb_handle_fdt(fdt, stdoutNode);
+	}
+}
+
+
+static void
 dtb_handle_chosen_node(const void *fdt)
 {
 	int chosen = fdt_path_offset(fdt, "/chosen");
@@ -630,6 +655,7 @@ dtb_init()
 		dump_fdt(sDtbTable);
 #endif
 
+		dtb_handle_board_quirks(sDtbTable);
 		dtb_handle_chosen_node(sDtbTable);
 
 		int node = -1;
