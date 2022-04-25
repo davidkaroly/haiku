@@ -77,6 +77,22 @@
 	movs	pc, lr						/* Return to user mode */
 .endm
 
+
+.macro	PUSH_FPU_REGISTERS
+	fstmdbd	sp!, { d0-d15 }
+	fstmdbd	sp!, { d16-d31 }
+	vmrs	r1, fpscr
+	str		r1, [sp, #-4]!
+.endm
+
+.macro	PULL_FPU_REGISTERS
+	ldr		r1, [sp], #4
+	vmsr	fpscr, r1
+	fldmiad	sp!, { d16-d31 }
+	fldmiad	sp!, { d0-d15 }
+.endm
+
+
 .text
 
 .globl _vectors_start
@@ -159,9 +175,13 @@ FUNCTION(arm_undefined):
 	PUSH_FRAME_IN_SVC
 
 	mov		r0, sp		/* iframe */
+
+	PUSH_FPU_REGISTERS
+
 	mov		fp, r0
 	bl		arch_arm_undefined
 
+	PULL_FPU_REGISTERS
 	DISABLE_INTERRUPTS
 	PULL_FRAME_FROM_SVC_AND_EXIT
 FUNCTION_END(arm_undefined)
@@ -188,9 +208,13 @@ FUNCTION(arm_prefetch_abort):
 	PUSH_FRAME_IN_SVC
 
 	mov		r0, sp		/* iframe */
+
+	PUSH_FPU_REGISTERS
+
 	mov		fp, r0
 	bl		arch_arm_prefetch_abort
 
+	PULL_FPU_REGISTERS
 	DISABLE_INTERRUPTS
 	PULL_FRAME_FROM_SVC_AND_EXIT
 FUNCTION_END(arm_prefetch_abort)
@@ -205,9 +229,13 @@ FUNCTION(arm_data_abort):
 	PUSH_FRAME_IN_SVC
 
 	mov		r0, sp		/* iframe */
+
+	PUSH_FPU_REGISTERS
+
 	mov		fp, r0
 	bl		arch_arm_data_abort
 
+	PULL_FPU_REGISTERS
 	DISABLE_INTERRUPTS
 	PULL_FRAME_FROM_SVC_AND_EXIT
 FUNCTION_END(arm_data_abort)
@@ -223,9 +251,13 @@ FUNCTION(arm_irq):
 	PUSH_FRAME_IN_SVC
 
 	mov		r0, sp		/* iframe */
+
+	PUSH_FPU_REGISTERS
+
 	mov		fp, r0
 	bl		arch_arm_irq
 
+	PULL_FPU_REGISTERS
 	DISABLE_INTERRUPTS
 	PULL_FRAME_FROM_SVC_AND_EXIT
 FUNCTION_END(arm_irq)
@@ -236,9 +268,13 @@ FUNCTION(arm_fiq):
 	PUSH_FRAME_IN_SVC
 
 	mov		r0, sp		/* iframe */
+
+	PUSH_FPU_REGISTERS
+
 	mov		fp, r0
 	bl		arch_arm_fiq
 
+	PULL_FPU_REGISTERS
 	DISABLE_INTERRUPTS
 	PULL_FRAME_FROM_SVC_AND_EXIT
 FUNCTION_END(arm_fiq)
