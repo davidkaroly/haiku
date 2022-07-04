@@ -9,11 +9,6 @@
 #include <SupportDefs.h>
 
 
-// For use with mmu_map_physical_memory()
-static const uint32 kDefaultPageFlags = 0x3;
-	// present, R/W
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,9 +16,16 @@ extern "C" {
 extern void mmu_init(void* fdt);
 extern void mmu_init_for_kernel(void);
 extern addr_t mmu_map_physical_memory(addr_t physicalAddress,
-	size_t size, uint32 flags);
+	size_t size);
 extern void *mmu_allocate(void *virtualAddress, size_t size);
 extern void mmu_free(void *virtualAddress, size_t size);
+
+extern status_t platform_bootloader_address_to_kernel_address(void *address,
+	addr_t *_result);
+
+extern status_t platform_kernel_address_to_bootloader_address(addr_t address,
+	void **_result);
+
 
 #ifdef __cplusplus
 }

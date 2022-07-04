@@ -67,7 +67,7 @@ actions BuildUBootSDImage1
 	# generate u-boot environment variables
 	echo 'os=haiku' > uEnv.txt
 	echo 'platform=u-boot' >> uEnv.txt
-	echo "loader=haiku_loader.ub" >> uEnv.txt
+	echo "loader=haiku_loader.u-boot" >> uEnv.txt
 
 	# Lay down partition map
 	OS_LENGTH=`expr ${MMC_SIZE} - ${BOOT_SIZE}`

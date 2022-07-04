@@ -257,7 +257,7 @@ rule KernelArchitectureSetup architecture
 			HAIKU_BOOT_FLOPPY_IMAGE_SIZE = 1440 ;
 			# offset in floppy image (>= sizeof(haiku_loader))
 			HAIKU_BOOT_ARCHIVE_IMAGE_OFFSET = 192 ; # in kB - unused yet
-			HAIKU_BOOT_LOADER_BASE ?= 0x1000000 ;
+			HAIKU_BOOT_LOADER_BASE ?= 0x40400000 ;
 
 		case arm64 :
 			HAIKU_KERNEL_PLATFORM ?= efi ;

@@ -1,0 +1,44 @@
+SubDir HAIKU_TOP src system boot platform u-boot arch arm ;
+
+SubDirHdrs $(HAIKU_TOP) src system boot platform u-boot ;
+SubDirHdrs $(HAIKU_TOP) src system boot arch $(TARGET_KERNEL_ARCH_DIR) ;
+
+UseLibraryHeaders [ FDirName libfdt ] ;
+
+UsePrivateHeaders [ FDirName kernel boot platform u-boot ] ;
+UsePrivateHeaders [ FDirName kernel platform u-boot ] ;
+UsePrivateHeaders [ FDirName kernel arch $(TARGET_KERNEL_ARCH_DIR) ] ;
+
+local platform ;
+for platform in [ MultiBootSubDirSetup u-boot ] {
+	on $(platform) {
+		SubDirC++Flags -fno-rtti ;
+
+		local arch_src =
+			# must come first to have _start_* at correct locations
+			shell.S
+
+			# Kernel entry calls
+			arch_start_kernel.S
+
+			# Framebuffer drivers
+			arch_framebuffer_920.cpp
+			arch_framebuffer_bcm2835.cpp
+			arch_framebuffer_omap3.cpp
+			arch_framebuffer_pxa.cpp
+
+			# Mailbox drivers
+			arch_mailbox_bcm2835.cpp
+
+			# u-boot mmu setup
+			arch_mmu.cpp
+
+			arch_cpu.cpp
+			arch_dtb.cpp
+			;
+
+		BootMergeObject boot_platform_u-boot_arm.o :
+			$(arch_src)
+			;
+	}
+}

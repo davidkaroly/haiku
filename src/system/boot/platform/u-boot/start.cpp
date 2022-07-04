@@ -4,10 +4,10 @@
  */
 
 
+#include "dtb.h"
 #include "serial.h"
 #include "console.h"
 #include "cpu.h"
-#include "fdt_support.h"
 #include "mmu.h"
 #include "smp.h"
 #include "uimage.h"
@@ -24,7 +24,6 @@
 #include <string.h>
 
 extern "C" {
-#include <fdt.h>
 #include <libfdt.h>
 #include <libfdt_env.h>
 };
@@ -121,10 +120,15 @@ platform_start_kernel(void)
 //	smp_init_other_cpus();
 	serial_cleanup();
 	mmu_init_for_kernel();
+
+	dtb_set_kernel_args();
+//	convert_kernel_args();
+
 //	smp_boot_other_cpus();
 
-	dprintf("ncpus %" B_PRId32 "\n", gKernelArgs.num_cpus);
-	dprintf("kernel entry at 0x%" B_PRIxADDR "\n", kernelEntry);
+	// Enter the kernel!
+	dprintf("enter_kernel(kernelArgs: 0x%08x, kernelEntry: 0x%08" B_PRIxADDR ", sp: 0x%08" B_PRIxADDR ")\n",
+		(uint32_t)&gKernelArgs, kernelEntry, stackTop);
 
 	status_t error = arch_start_kernel(&gKernelArgs, kernelEntry,
 		stackTop);
@@ -225,7 +229,10 @@ start_gen(int argc, const char **argv, struct image_header *uimage, void *fdt)
 	// We have to cpu_init *before* calling FDT functions
 	cpu_init();
 
-	serial_init(gFDT);
+	serial_init_early();
+	dtb_init();
+
+	serial_init();
 
 	// initialize the OpenFirmware wrapper
 	// TODO: We need to call this when HAIKU_KERNEL_PLATFORM == openfirmware
@@ -245,9 +252,13 @@ start_gen(int argc, const char **argv, struct image_header *uimage, void *fdt)
 			prop = fdt_getprop(gFDT, node, "linux,initrd-start", &len);
 			if (prop && len == 4)
 				initrd_start = fdt32_to_cpu(*(uint32_t *)prop);
+			else if (prop && len == 8)
+				initrd_start = fdt64_to_cpu(*(uint64_t *)prop);
 			prop = fdt_getprop(gFDT, node, "linux,initrd-end", &len);
 			if (prop && len == 4)
 				initrd_end = fdt32_to_cpu(*(uint32_t *)prop);
+			else if (prop && len == 8)
+				initrd_end = fdt64_to_cpu(*(uint64_t *)prop);
 			if (initrd_end > initrd_start) {
 				args.platform.boot_tgz_data = (void *)initrd_start;
 				args.platform.boot_tgz_size = initrd_end - initrd_start;
@@ -292,8 +303,8 @@ start_gen(int argc, const char **argv, struct image_header *uimage, void *fdt)
 		}
 		if (gUImage)
 			dump_uimage(gUImage);
-		if (gFDT)
-			dump_fdt(gFDT);
+		//if (gFDT)
+		//	dump_fdt(gFDT);
 	}
 	
 	if (args.platform.boot_tgz_size > 0) {
@@ -310,12 +321,11 @@ start_gen(int argc, const char **argv, struct image_header *uimage, void *fdt)
 	// Handle our tarFS post-mmu
 	if (args.platform.boot_tgz_size > 0) {
 		args.platform.boot_tgz_data = (void*)mmu_map_physical_memory((addr_t)
-			args.platform.boot_tgz_data, args.platform.boot_tgz_size,
-			kDefaultPageFlags);
+			args.platform.boot_tgz_data, args.platform.boot_tgz_size);
 	}
 	// .. and our FDT
 	if (gFDT != NULL)
-		gFDT = (void*)mmu_map_physical_memory((addr_t)gFDT, fdtSize, kDefaultPageFlags);
+		gFDT = (void*)mmu_map_physical_memory((addr_t)gFDT, fdtSize);
 
 	// if we get passed an FDT, check /chosen for bootargs now
 	// to avoid having to copy them.

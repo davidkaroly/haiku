@@ -1,4 +1,7 @@
 /*
+ * Copyright 2012-2022, Haiku, Inc. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ *
  * Copyright 2004-2008, Axel Dörfler, axeld@pinc-software.de.
  * Distributed under the terms of the MIT License.
  *
@@ -25,17 +28,9 @@
 #include <new>
 #include <string.h>
 
-extern "C" {
-#include <fdt.h>
-#include <libfdt.h>
-#include <libfdt_env.h>
-};
+DebugUART *gUART;
 
-#include "fdt_serial.h"
-
-
-DebugUART* gUART;
-
+static int32 sEarlySerialEnabled = 0;
 static int32 sSerialEnabled = 0;
 static char sBuffer[16384];
 static uint32 sBufferPosition;
@@ -44,6 +39,11 @@ static uint32 sBufferPosition;
 static void
 serial_putc(char c)
 {
+	if (sEarlySerialEnabled) {
+		*(volatile uint32_t *)0x09000000 = c;
+		return;
+	}
+
 	if (gUART == NULL || sSerialEnabled <= 0)
 		return;
 
@@ -64,6 +64,13 @@ serial_getc(bool wait)
 extern "C" void
 serial_puts(const char* string, size_t size)
 {
+	if (sEarlySerialEnabled) {
+		for (int i = 0; i < size; i++) {
+			serial_putc(string[i]);
+		}
+		return;
+	}
+
 	if (sSerialEnabled <= 0)
 		return;
 
@@ -90,6 +97,7 @@ extern "C" void
 serial_disable(void)
 {
 	sSerialEnabled = 0;
+	sEarlySerialEnabled = 0;
 }
 
 
@@ -97,9 +105,13 @@ extern "C" void
 serial_enable(void)
 {
 	/* should already be initialized by U-Boot */
-	gUART->InitEarly();
-	gUART->InitPort(115200);
+	if (gUART != NULL) {
+		gUART->InitEarly();
+		gUART->InitPort(115200);
+	}
+
 	sSerialEnabled++;
+	sEarlySerialEnabled = 0;
 }
 
 
@@ -117,16 +129,18 @@ serial_cleanup(void)
 }
 
 
-extern "C" void
-serial_init(const void *fdt)
+void
+serial_init_early(void)
 {
-	// first try with hints from the FDT
-	gUART = debug_uart_from_fdt(fdt);
+	sEarlySerialEnabled = 1;
+}
 
-	// Do we can some kind of direct fallback here
-	// (aka, guess arch_get_uart_pl011 or arch_get_uart_8250?)
-	if (gUART == NULL)
-		return;
+
+extern "C" void
+serial_init(void)
+{
+	//if (gUART == NULL)
+	//	gUART = arch_get_uart_pl011(0x9000000, 0x16e3600);
 
 	serial_enable();
 }

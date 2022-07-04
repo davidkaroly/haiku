@@ -5,22 +5,24 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
-
+#include <arch/generic/debug_uart.h>
 #include <SupportDefs.h>
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void serial_init(const void *fdt);
-extern void serial_cleanup(void);
+void serial_init_early(void);
+void serial_init(void);
+void serial_cleanup(void);
 
-extern void serial_puts(const char *string, size_t size);
-extern int serial_getc(bool wait);
+void serial_puts(const char *string, size_t size);
+int serial_getc(bool wait);
 
-extern void serial_disable(void);
-extern void serial_enable(void);
+void serial_disable(void);
+void serial_enable(void);
+
+extern DebugUART *gUART;
 
 #ifdef __cplusplus
 }
