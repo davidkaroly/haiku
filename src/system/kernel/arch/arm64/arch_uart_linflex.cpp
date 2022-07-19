@@ -52,10 +52,10 @@ void
 ArchUARTlinflex::InitPort(uint32 baud)
 {
 	// Calculate baud divisor
-	uint32 baudDivisor = Clock() / (16 * baud);
-	uint32 remainder = Clock() % (16 * baud);
-	uint32 baudFractional = ((8 * remainder) / baud >> 1)
-		+ ((8 * remainder) / baud & 1);
+	//uint32 baudDivisor = Clock() / (16 * baud);
+	//uint32 remainder = Clock() % (16 * baud);
+	//uint32 baudFractional = ((8 * remainder) / baud >> 1)
+	//	+ ((8 * remainder) / baud & 1);
 
 	// Disable UART
 	Disable();
