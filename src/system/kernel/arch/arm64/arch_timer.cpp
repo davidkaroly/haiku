@@ -42,7 +42,8 @@ int32
 arch_timer_interrupt(void *data)
 {
 	WRITE_SPECIALREG(CNTP_CTL_EL0, TIMER_MASKED);
-	return timer_interrupt();
+	//return timer_interrupt();
+	return 0;
 }
 
 
