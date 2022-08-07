@@ -31,7 +31,7 @@ SYSTEM_ADD_ONS_BUS_MANAGERS = [ FFilterByBuildFeatures
 	virtio@arm virtio_block@arm virtio_mmio@arm
 ] ;
 SYSTEM_ADD_ONS_FILE_SYSTEMS =
-	attribute_overlay@!m68k bfs iso9660@!m68k packagefs write_overlay@!m68k
+	attribute_overlay@!m68k bfs fat iso9660@!m68k packagefs write_overlay@!m68k
 	;
 
 # modules
