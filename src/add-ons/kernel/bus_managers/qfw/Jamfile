@@ -1,0 +1,9 @@
+SubDir HAIKU_TOP src add-ons kernel bus_managers qfw ;
+
+UsePrivateKernelHeaders ;
+UsePrivateHeaders [ FDirName graphics ramfb ] ;
+UsePrivateHeaders graphics kernel ;
+
+KernelAddon qfw :
+	driver.cpp
+;
