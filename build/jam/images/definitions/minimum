@@ -147,10 +147,14 @@ SYSTEM_ADD_ONS_ACCELERANTS = [ FFilterByBuildFeatures
 	x86,x86_64 @{
 		vesa.accelerant
 	}@ # x86,x86_64
+	arm,arm64 @{
+		ramfb.accelerant
+	}@ # arm,arm64
 	riscv64 @{
 		# ati for qemu, radeon_hd for unmatched
 		ati.accelerant
 		radeon_hd.accelerant
+		ramfb.accelerant
 	}@ # riscv64
 ] ;
 
