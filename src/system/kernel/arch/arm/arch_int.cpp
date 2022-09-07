@@ -243,6 +243,9 @@ arch_arm_syscall(struct iframe *iframe)
 
 	IFrameScope scope(iframe);
 
+	if ((iframe->spsr & CPSR_MODE_MASK) != CPSR_MODE_USR)
+		panic("syscall should be called only from user mode!\n");
+
 	uint32_t syscall = *(uint32_t *)(iframe->pc-4) & 0x00ffffff;
 	TRACE("syscall number: %d\n", syscall);
 
@@ -294,6 +297,9 @@ arch_arm_syscall(struct iframe *iframe)
 	}
 
 	thread_get_current_thread()->arch_info.userFrame = NULL;
+
+	if ((iframe->spsr & CPSR_MODE_MASK) != CPSR_MODE_USR)
+		panic("spsr is not user mode at end of syscall - iframe overwritten?\n");
 }
 
 
@@ -361,6 +367,9 @@ arch_arm_page_fault(struct iframe *frame, addr_t far, uint32 fsr, bool isWrite, 
 #endif
 
 	IFrameScope scope(frame);
+
+	if (!isUser && (frame->pc < KERNEL_BASE))
+		panic("should not happen\n");
 
 	if (debug_debugger_running()) {
 		// If this CPU or this thread has a fault handler, we're allowed to be
@@ -467,6 +476,9 @@ extern "C" void
 arch_arm_irq(struct iframe *iframe)
 {
 	IFrameScope scope(iframe);
+
+	if (((iframe->spsr & CPSR_MODE_MASK) != CPSR_MODE_USR) && (iframe->pc < KERNEL_BASE))
+		panic("should not happen\n");
 
 	InterruptController *ic = InterruptController::Get();
 	if (ic != NULL)
