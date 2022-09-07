@@ -29,7 +29,7 @@ extern "C" {
 };
 
 
-#define HEAP_SIZE (128 * 1024)
+#define HEAP_SIZE (1024 * 1024)
 
 
 typedef struct uboot_gd {

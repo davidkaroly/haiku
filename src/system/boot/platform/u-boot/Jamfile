@@ -27,8 +27,10 @@ local platform_src =
 	debug.cpp
 	devices.cpp
 	dtb.cpp
+	fw_cfg.cpp
 	keyboard.cpp
 	menu.cpp
+	ramfb.cpp
 	serial.cpp
 	uimage.cpp
 	video.cpp

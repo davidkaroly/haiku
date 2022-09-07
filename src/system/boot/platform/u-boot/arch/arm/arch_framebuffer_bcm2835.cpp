@@ -9,7 +9,7 @@
  */
 
 
-#include "arch_framebuffer.h"
+#include "framebuffer.h"
 
 #include <arch/arm/bcm283X.h>
 #include <arch/cpu.h>
@@ -58,10 +58,10 @@ struct framebuffer_config {
 static framebuffer_config sFramebufferConfig __attribute__((aligned(16)));
 
 
-class ArchFBArmBCM2835 : public ArchFramebuffer {
+class ArchFBArmBCM2835 : public Framebuffer {
 public:
 							ArchFBArmBCM2835(addr_t base)
-								: ArchFramebuffer(base) {}
+								: Framebuffer(base) {}
 							~ArchFBArmBCM2835() {}
 
 virtual	status_t			Init();
@@ -73,7 +73,7 @@ private:
 };
 
 
-extern "C" ArchFramebuffer*
+extern "C" Framebuffer*
 arch_get_fb_arm_bcm2835(addr_t base)
 {
     return new ArchFBArmBCM2835(base);

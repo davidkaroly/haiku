@@ -8,7 +8,7 @@
  */
 
 
-#include "arch_framebuffer.h"
+#include "framebuffer.h"
 
 #include <arch/arm/omap3.h>
 #include <arch/cpu.h>
@@ -40,10 +40,10 @@ mmu_get_virtual_mapping(addr_t virtualAddress, phys_addr_t *_physicalAddress);
 #define dumpr(a) dprintf("LCC:%s:0x%lx\n", #a, read_io_32(a))
 
 
-class ArchFBArmOmap3 : public ArchFramebuffer {
+class ArchFBArmOmap3 : public Framebuffer {
 public:
 							ArchFBArmOmap3(addr_t base)
-								: ArchFramebuffer(base) {}
+								: Framebuffer(base) {}
 							~ArchFBArmOmap3() {}
 
 			status_t		Init();
@@ -52,7 +52,7 @@ public:
 			status_t		SetVideoMode(int width, int height, int depth);
 };
 
-extern "C" ArchFramebuffer *arch_get_fb_arm_omap3(addr_t base)
+extern "C" Framebuffer *arch_get_fb_arm_omap3(addr_t base)
 {
 	return new ArchFBArmOmap3(base);
 }
@@ -353,7 +353,7 @@ ArchFBArmOmap3::Probe()
 	gKernelArgs.frame_buffer.physical_buffer.start = fPhysicalBase;
 #endif
 
-	TRACE("video mode: %ux%ux%u\n", gKernelArgs.frame_buffer.width,
+	dprintf("video mode: %ux%ux%u\n", gKernelArgs.frame_buffer.width,
 		gKernelArgs.frame_buffer.height, gKernelArgs.frame_buffer.depth);
 
 	return B_OK;
@@ -363,7 +363,7 @@ ArchFBArmOmap3::Probe()
 status_t
 ArchFBArmOmap3::SetVideoMode(int width, int height, int depth)
 {
-	TRACE("%s: %dx%d@%d\n", __func__, width, height, depth);
+	dprintf("%s: %dx%d@%d\n", __func__, width, height, depth);
 
 	omap_set_lcd_mode(width, height);
 	omap_attach_framebuffer(fPhysicalBase, width, height, depth);
@@ -375,8 +375,6 @@ ArchFBArmOmap3::SetVideoMode(int width, int height, int depth)
 status_t
 ArchFBArmOmap3::SetDefaultMode()
 {
-	CALLED();
-
 	return SetVideoMode(gKernelArgs.frame_buffer.width,
 		gKernelArgs.frame_buffer.height,
 		gKernelArgs.frame_buffer.depth);

@@ -5,31 +5,20 @@
  * Authors:
  *		Alexander von Gluck IV, kallisti5@unixzen.com
  */
-#ifndef _ARCH_FRAMEBUFFER_H
-#define _ARCH_FRAMEBUFFER_H
+#ifndef _FRAMEBUFFER_H
+#define _FRAMEBUFFER_H
 
 
 #include <boot/platform.h>
 #include <SupportDefs.h>
 
 
-#define TRACE_VIDEO
-#ifdef TRACE_VIDEO
-#   define TRACE(x...) dprintf(x)
-#	define CALLED() dprintf("%s()\n", __func__);
-#else
-#   define TRACE(x...) ;
-#	define CALLED() ;
-#endif
-#define ERROR(x...) dprintf(x)
-
-
-class ArchFramebuffer {
+class Framebuffer {
 public:
-							ArchFramebuffer(addr_t base)
+							Framebuffer(addr_t base)
 								:
 								fBase(base) {};
-							~ArchFramebuffer() {};
+							~Framebuffer() {};
 
 	virtual status_t		Init() { return B_OK; };
 	virtual status_t		Probe() { return B_OK; };
@@ -57,4 +46,4 @@ protected:
 };
 
 
-#endif /* _ARCH_FRAMEBUFFER_H */
+#endif /* _FRAMEBUFFER_H */

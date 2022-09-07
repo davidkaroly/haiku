@@ -8,7 +8,7 @@
  */
 
 
-#include "arch_framebuffer.h"
+#include "framebuffer.h"
 
 #include <arch/cpu.h>
 #include <boot/stage2.h>
@@ -19,10 +19,10 @@
 #include <drivers/driver_settings.h>
 
 
-class ArchFBArm920 : public ArchFramebuffer {
+class ArchFBArm920 : public Framebuffer {
 public:
 							ArchFBArm920(addr_t base)
-								: ArchFramebuffer(base) {}
+								: Framebuffer(base) {}
 							~ArchFBArm920() {}
 			status_t		Init();
 			status_t		Probe();
@@ -30,7 +30,7 @@ public:
 			status_t		SetVideoMode(int width, int height, int depth);
 };
 
-extern "C" ArchFramebuffer *arch_get_fb_arm_920(addr_t base)
+extern "C" Framebuffer *arch_get_fb_arm_920(addr_t base)
 {
 	return new ArchFBArm920(base);
 }

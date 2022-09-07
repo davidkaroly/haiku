@@ -8,7 +8,7 @@
  */
 
 
-#include "arch_framebuffer.h"
+#include "framebuffer.h"
 
 #include <arch/arm/pxa270.h>
 #include <arch/cpu.h>
@@ -30,10 +30,10 @@ extern "C" addr_t mmu_map_physical_memory(addr_t physicalAddress, size_t size,
 	uint32 flags);
 
 
-class ArchFBArmPxa270 : public ArchFramebuffer {
+class ArchFBArmPxa270 : public Framebuffer {
 public:
 							ArchFBArmPxa270(addr_t base)
-								: ArchFramebuffer(base) {}
+								: Framebuffer(base) {}
 							~ArchFBArmPxa270() {}
 			status_t		Init();
 			status_t		Probe();
@@ -41,7 +41,7 @@ public:
 			status_t		SetVideoMode(int width, int height, int depth);
 };
 
-extern "C" ArchFramebuffer *arch_get_fb_arm_pxa270(addr_t base)
+extern "C" Framebuffer *arch_get_fb_arm_pxa270(addr_t base)
 {
 	return new ArchFBArmPxa270(base);
 }
@@ -71,8 +71,6 @@ ArchFBArmPxa270::Init()
 status_t
 ArchFBArmPxa270::Probe()
 {
-	CALLED();
-
 #if 0
 	// TODO: More dynamic framebuffer base?
 	if (!fBase) {
@@ -223,7 +221,6 @@ ArchFBArmPxa270::SetVideoMode(int width, int height, int depth)
 status_t
 ArchFBArmPxa270::SetDefaultMode()
 {
-	CALLED();
 	return SetVideoMode(gKernelArgs.frame_buffer.width,
 		gKernelArgs.frame_buffer.height,
 		gKernelArgs.frame_buffer.depth);

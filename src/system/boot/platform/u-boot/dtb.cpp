@@ -27,6 +27,7 @@ extern "C" {
 #include <boot/stage2.h>
 #include <boot/uart.h>
 
+#include "fw_cfg.h"
 #include "serial.h"
 
 
@@ -469,6 +470,12 @@ dtb_handle_fdt(const void* fdt, int node)
 
 	if (compatible == NULL)
 		return;
+
+	if (dtb_has_fdt_string(compatible, compatibleLen, "qemu,fw-cfg-mmio")) {
+		uint64* reg = (uint64*)fdt_getprop(fdt, node, "reg", NULL);
+		addr_t base = (addr_t)fdt64_to_cpu(*reg);
+		fw_cfg_set_base(base);
+	}
 
 	// check for a uart if we don't have one
 	uart_info &uart = gKernelArgs.arch_args.uart;

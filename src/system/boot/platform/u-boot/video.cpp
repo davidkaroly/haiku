@@ -19,10 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "arch_framebuffer.h"
+#include "framebuffer.h"
+#include "fw_cfg.h"
 
 
-ArchFramebuffer *gFramebuffer = NULL;
+Framebuffer *gFramebuffer = NULL;
 
 
 //	#pragma mark -
@@ -85,7 +86,7 @@ platform_switch_to_logo(void)
 	if (gFramebuffer != NULL) {
 		err = gFramebuffer->SetDefaultMode();
 		if (err < B_OK) {
-			ERROR("Framebuffer SetDefaultMode failed!\n");
+			dprintf("Framebuffer SetDefaultMode failed!\n");
 			return;
 		}
 
@@ -104,7 +105,8 @@ extern "C" status_t
 platform_init_video(void)
 {
 
-#warning TODO: Fix u-boot arm framebuffer location from fdt!
+#warning TODO: detect framebuffer type and location from FDT
+
 #if defined(__arm__)
 	#if defined(BOARD_CPU_ARM920T)
 		extern ArchFramebuffer *arch_get_fb_arm_920(addr_t base);
@@ -122,8 +124,11 @@ platform_init_video(void)
 	#endif
 #endif
 
+	fw_cfg_init();
+	gFramebuffer = fw_cfg_get_framebuffer();
+
 	if (gFramebuffer == NULL) {
-		ERROR("No framebuffer device found!\n");
+		dprintf("No framebuffer device found!\n");
 		return B_ERROR;
 	}
 

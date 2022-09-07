@@ -7,6 +7,7 @@
 
 
 #include "mmu.h"
+#include "ramfb.h"
 
 #include <boot/platform.h>
 #include <boot/stdio.h>
@@ -443,6 +444,19 @@ map_page(addr_t virtualAddress, addr_t physicalAddress, uint32 flags)
 
 
 static void
+insert_virtual_range_to_keep(uint64 start, uint64 size)
+{
+	status_t status = insert_address_range(gKernelArgs.arch_args.virtual_ranges_to_keep,
+		&gKernelArgs.arch_args.num_virtual_ranges_to_keep, MAX_VIRTUAL_RANGES_TO_KEEP, start, size);
+
+	if (status == B_ENTRY_NOT_FOUND)
+		panic("too many virtual ranges to keep");
+	else if (status != B_OK)
+		panic("failed to add virtual range to keep");
+}
+
+
+static void
 init_page_directory(void* fdt)
 {
 	TRACE("init_page_directory\n");
@@ -474,11 +488,7 @@ init_page_directory(void* fdt)
 		ARM_MMU_L2_FLAG_B | ARM_MMU_L2_FLAG_AP_KRW | ARM_MMU_L2_FLAG_XN);
 	gKernelArgs.arch_args.uart.regs.start = uart_addr;
 
-	insert_address_range(gKernelArgs.arch_args.virtual_ranges_to_keep,
-		&gKernelArgs.arch_args.num_virtual_ranges_to_keep,
-		MAX_VIRTUAL_RANGES_TO_KEEP,
-		gKernelArgs.arch_args.uart.regs.start,
-		gKernelArgs.arch_args.uart.regs.size);
+	insert_virtual_range_to_keep(gKernelArgs.arch_args.uart.regs.start, gKernelArgs.arch_args.uart.regs.size);
 
 	mmu_flush_TLB();
 
@@ -667,6 +677,13 @@ mmu_init_for_kernel(void)
 	// Save the memory we've virtually allocated (for the kernel and other
 	// stuff)
 	insert_virtual_allocated_range(KERNEL_LOAD_BASE, sNextVirtualAddress - KERNEL_LOAD_BASE);
+
+	// reserve ramfb frame buffer
+	addr_t ramfbFramebuffer = ramfb_get_framebuffer();
+	size_t ramfbSize = ramfb_get_size();
+
+	if (ramfbFramebuffer != NULL)
+		insert_virtual_range_to_keep(ramfbFramebuffer, ramfbSize);
 
 	sort_address_ranges(gKernelArgs.physical_memory_range,
 		gKernelArgs.num_physical_memory_ranges);
