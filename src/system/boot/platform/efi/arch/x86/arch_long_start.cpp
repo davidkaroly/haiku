@@ -1,10 +1,11 @@
 /*
- * Copyright 2021-2022 Haiku, Inc. All rights reserved.
+ * Copyright 2022 Haiku, Inc. All rights reserved.
  * Released under the terms of the MIT License.
  */
 
 
 #include <kernel.h>
+#include <arch_kernel.h>
 #include <boot/platform.h>
 #include <boot/stage2.h>
 #include <boot/stdio.h>
@@ -13,12 +14,19 @@
 #include "generic_mmu.h"
 #include "mmu.h"
 #include "serial.h"
-#include "smp.h"
+
+
+//#define TRACE_LONG_START
+#ifdef TRACE_LONG_START
+#	define TRACE(x...) dprintf(x)
+#else
+#	define TRACE(x...) ;
+#endif
 
 
 struct gdt_idt_descr {
-	uint16  limit;
-	void*   base;
+	uint16_t	limit;
+	uint32_t	base;
 } _PACKED;
 
 
@@ -26,48 +34,31 @@ extern "C" typedef void (*enter_kernel_t)(uint32_t, addr_t, addr_t, addr_t,
 	struct gdt_idt_descr *);
 
 
-// From entry.S
-extern "C" void arch_enter_kernel(uint32_t pageDirectory, addr_t kernelArgs,
+// From entry_long.S
+extern "C" void arch_enter_kernel_long(uint32_t pageDirectory, addr_t kernelArgs,
 	addr_t kernelEntry, addr_t kernelStackTop, struct gdt_idt_descr *gdtDescriptor);
 
-// From arch_mmu.cpp
-extern void arch_mmu_init_gdt(gdt_idt_descr &bootGDTDescriptor);
+// From arch_long_mmu.cpp
+extern void arch_mmu_init_long_gdt(gdt_idt_descr &longBootGDTDescriptor);
 
-extern void arch_mmu_post_efi_setup(size_t memoryMapSize,
+extern void arch_long_mmu_post_efi_setup(size_t memoryMapSize,
 	efi_memory_descriptor *memoryMap, size_t descriptorSize,
 	uint32_t descriptorVersion);
 
-extern uint32_t arch_mmu_generate_post_efi_page_tables(size_t memoryMapSize,
+extern uint32_t arch_long_mmu_generate_post_efi_page_tables(size_t memoryMapSize,
 	efi_memory_descriptor *memoryMap, size_t descriptorSize,
 	uint32_t descriptorVersion);
 
-// From arch_long_start.cpp
-void arch_long_start_kernel(addr_t kernelEntry);
-
 
 void
-arch_convert_kernel_args(void)
+arch_long_start_kernel(addr_t kernelEntry)
 {
-	fix_address(gKernelArgs.ucode_data);
-	fix_address(gKernelArgs.arch_args.apic);
-	fix_address(gKernelArgs.arch_args.hpet);
-}
-
-
-void
-arch_start_kernel(addr_t kernelEntry)
-{
-	if (gIsHybridPlatform) {
-		arch_long_start_kernel(kernelEntry);
-		return;
-	}
-
-	gdt_idt_descr bootGDTDescriptor;
-	arch_mmu_init_gdt(bootGDTDescriptor);
+	gdt_idt_descr longBootGDTDescriptor;
+	arch_mmu_init_long_gdt(longBootGDTDescriptor);
 
 	// Copy entry.S trampoline to lower 1M
 	enter_kernel_t enter_kernel = (enter_kernel_t)0xa000;
-	memcpy((void *)enter_kernel, (void *)arch_enter_kernel, B_PAGE_SIZE);
+	memcpy((void *)enter_kernel, (void *)arch_enter_kernel_long, B_PAGE_SIZE);
 
 	// Allocate virtual memory for kernel args
 	struct kernel_args *kernelArgs = NULL;
@@ -125,7 +116,7 @@ arch_start_kernel(addr_t kernelEntry)
 	}
 
 	// Generate page tables for use after ExitBootServices.
-	uint32_t pageDirectory = arch_mmu_generate_post_efi_page_tables(
+	uint32_t pageDirectory = arch_long_mmu_generate_post_efi_page_tables(
 		memoryMapSize, memoryMap, descriptorSize, descriptorVersion);
 
 	// Attempt to fetch the memory map and exit boot services.
@@ -159,7 +150,7 @@ arch_start_kernel(addr_t kernelEntry)
 	}
 
 	// Update EFI, generate final kernel physical memory map, etc.
-	arch_mmu_post_efi_setup(memoryMapSize, memoryMap,
+	arch_long_mmu_post_efi_setup(memoryMapSize, memoryMap,
 		descriptorSize, descriptorVersion);
 
 	// Copy final kernel args
@@ -167,16 +158,16 @@ arch_start_kernel(addr_t kernelEntry)
 	// as there are some fixups happening to kernel_args even in the last minute
 	memcpy(kernelArgs, &gKernelArgs, sizeof(struct kernel_args));
 
-	smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
+	//smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
 
 	// Enter the kernel!
-	dprintf("enter_kernel(pageDirectory: 0x%08x, kernelArgs: 0x%08x, "
-		"kernelEntry: 0x%08x, sp: 0x%08x, bootGDTDescriptor: 0x%08x)\n",
-		pageDirectory, (uint32_t)virtKernelArgs, (uint32_t)kernelEntry,
-		(uint32_t)(gKernelArgs.cpu_kstack[0].start + gKernelArgs.cpu_kstack[0].size),
-		(uint32_t)&bootGDTDescriptor);
+	dprintf("long_enter_kernel(pageDirectory: 0x%08" PRIx32 ", kernelArgs: 0x%08" B_PRIxADDR ", "
+		"kernelEntry: 0x%08" B_PRIxADDR ", sp: 0x%08" B_PRIx64 ", longBootGDTDescriptor: %p)\n",
+		pageDirectory, virtKernelArgs, kernelEntry,
+		gKernelArgs.cpu_kstack[0].start + gKernelArgs.cpu_kstack[0].size,
+		&longBootGDTDescriptor);
 
 	enter_kernel(pageDirectory, virtKernelArgs, kernelEntry,
 		gKernelArgs.cpu_kstack[0].start + gKernelArgs.cpu_kstack[0].size,
-		&bootGDTDescriptor);
+		&longBootGDTDescriptor);
 }

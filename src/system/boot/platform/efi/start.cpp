@@ -46,6 +46,8 @@ const efi_boot_services		*kBootServices;
 const efi_runtime_services	*kRuntimeServices;
 efi_handle kImage;
 
+bool gIsHybridPlatform = false;
+
 
 static uint32 sBootOptions;
 
@@ -175,6 +177,10 @@ get_kernel_regions(addr_range& text, addr_range& data)
 extern "C" void
 platform_start_kernel(void)
 {
+	if (gKernelArgs.kernel_image->elf_class == ELFCLASS64) {
+		gIsHybridPlatform = true;
+	}
+
 	smp_init_other_cpus();
 #ifdef _BOOT_FDT_SUPPORT
 	dtb_set_kernel_args();

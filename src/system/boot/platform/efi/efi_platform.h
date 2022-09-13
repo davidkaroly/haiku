@@ -52,4 +52,6 @@ extern const efi_boot_services		*kBootServices;
 extern const efi_runtime_services	*kRuntimeServices;
 extern efi_handle kImage;
 
+extern bool gIsHybridPlatform;
+
 #endif	/* EFI_PLATFORM_H */
