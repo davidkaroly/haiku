@@ -10,6 +10,7 @@
 #ifndef _ASSEMBLER
 
 
+#include <arch_kernel.h>
 #include "efi_platform.h"
 
 #include <util/FixedWidthPointer.h>
@@ -55,15 +56,20 @@ extern status_t platform_allocate_lomem(void **_address, size_t size);
 
 
 /*! Convert a 32-bit address to a 64-bit address. */
-inline addr_t
+inline uint64_t
 fix_address(addr_t address)
 {
 	addr_t result;
-	if (platform_bootloader_address_to_kernel_address((void *)address, &result)
-		!= B_OK) {
-		return address;
-	} else
-		return result;
+	if (platform_bootloader_address_to_kernel_address((void *)address, &result) != B_OK) {
+		result = address;
+	}
+
+#if B_HAIKU_BITS == 32
+	if (gIsHybridPlatform && (result >= KERNEL_LOAD_BASE))
+		return (uint64_t)result | KERNEL_FIXUP_FOR_LONG_MODE;
+#endif
+
+	return result;
 }
 
 
