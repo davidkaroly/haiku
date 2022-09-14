@@ -80,15 +80,17 @@ struct ELF32Class {
 	AllocateRegion(AddrType* _address, AddrType size, uint8 protection,
 		void** _mappedAddress)
 	{
-		status_t status = platform_allocate_region((void**)_address, size,
+		void* address = (void*)(addr_t)*_address;
+
+		status_t status = platform_allocate_region(&address, size,
 			protection, false);
 		if (status != B_OK)
 			return status;
 
-		*_mappedAddress = (void*)*_address;
+		*_mappedAddress = address;
 
 		addr_t res;
-		platform_bootloader_address_to_kernel_address((void*)*_address, &res);
+		platform_bootloader_address_to_kernel_address(address, &res);
 
 		*_address = res;
 
@@ -99,9 +101,19 @@ struct ELF32Class {
 	Map(AddrType address)
 	{
 		void *result = NULL;
+#if B_HAIKU_BITS == 64
+		if (platform_kernel_address_to_bootloader_address((addr_t)address, &result) == B_OK) {
+			return result;
+		} else if (platform_kernel_address_to_bootloader_address((addr_t)address + KERNEL_FIXUP_FOR_LONG_MODE, &result) == B_OK) {
+			return result;
+		} else {
+			panic("Couldn't convert address 0x%08" B_PRIxADDR "\n", (addr_t)address);
+		}
+#else
 		if (platform_kernel_address_to_bootloader_address(address, &result) != B_OK) {
 			panic("Couldn't convert address 0x%08x", (uint32_t)address);
 		}
+#endif
 
 		return result;
 	}
