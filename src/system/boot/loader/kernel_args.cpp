@@ -440,10 +440,7 @@ kernel_args_malloc(size_t size, uint8 alignment)
 	sLast = block;
 	sFree = kChunkSize - alignedSize;
 
-	// Translate the address if needed on the current platform
-	addr_t translated_block;
-	platform_bootloader_address_to_kernel_address(block, &translated_block);
-	if (add_kernel_args_range((void *)translated_block, kChunkSize) != B_OK)
+	if (add_kernel_args_range(block, kChunkSize) != B_OK)
 		panic("kernel_args max range too low!\n");
 
 	return (void*)ALIGN((addr_t)block, alignment);
