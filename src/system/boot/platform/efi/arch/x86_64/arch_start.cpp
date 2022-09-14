@@ -34,6 +34,9 @@ extern uint64_t arch_mmu_generate_post_efi_page_tables(size_t memory_map_size,
     efi_memory_descriptor *memory_map, size_t descriptor_size,
     uint32_t descriptor_version);
 
+// From arch_short_start.cpp
+void arch_short_start_kernel(addr_t kernelEntry);
+
 
 void
 arch_convert_kernel_args(void)
@@ -47,6 +50,11 @@ arch_convert_kernel_args(void)
 void
 arch_start_kernel(addr_t kernelEntry)
 {
+	if (gIsHybridPlatform) {
+		arch_short_start_kernel(kernelEntry);
+		return;
+	}
+
 	// Prepare to exit EFI boot services.
 	// Read the memory map.
 	// First call is to determine the buffer size.

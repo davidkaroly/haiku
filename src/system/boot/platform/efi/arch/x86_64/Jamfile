@@ -1,6 +1,7 @@
 SubDir HAIKU_TOP src system boot platform efi arch x86_64 ;
 
 SubDirHdrs $(HAIKU_TOP) src system boot platform efi ;
+SubDirHdrs $(SUBDIR) $(DOTDOT) generic ;
 
 UsePrivateHeaders [ FDirName kernel platform ] ;
 UsePrivateHeaders [ FDirName kernel boot platform efi ] ;
@@ -18,21 +19,28 @@ for platform in [ MultiBootSubDirSetup efi ] {
 	local arch_src =
 		crt0-efi-$(TARGET_ARCH).S
 		entry.S
+		entry_short.S
 		long_smp_trampoline.S
 		support.S
 		relocation_func.cpp
+		arch_short_mmu.cpp
+		arch_short_start.cpp
 		arch_start.cpp
 		arch_smp.cpp
 		arch_smp_64.cpp
 		arch_mmu.cpp
 		arch_timer.cpp
+		generic_mmu.cpp
 		;
 
 	BootMergeObject boot_platform_efi_x86_64.o :
 		$(arch_src)
 		;
 
-	SEARCH on [ FGristFiles arch_smp.cpp ]
+	SEARCH on [ FGristFiles generic_mmu.cpp ]
+		= [ FDirName $(HAIKU_TOP) src system boot platform efi arch generic ] ;
+
+	SEARCH on [ FGristFiles smp_trampoline.S arch_smp.cpp arch_smp_32.cpp ]
 		= [ FDirName $(HAIKU_TOP) src system boot platform efi arch x86 ] ;
 
 	SEARCH on [ FGristFiles arch_timer.cpp ]

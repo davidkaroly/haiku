@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2021 Haiku, Inc. All rights reserved.
+ * Copyright 2014-2022 Haiku, Inc. All rights reserved.
  * Copyright 2013-2014, Fredrik Holmqvist, fredrik.holmqvist@gmail.com.
  * Copyright 2014, Henry Harrington, henry.harrington@gmail.com.
  * All rights reserved.
@@ -188,9 +188,19 @@ get_kernel_regions(addr_range& text, addr_range& data)
 extern "C" void
 platform_start_kernel(void)
 {
+#if B_HAIKU_BITS == 32
+#warning hybrid mode for loading 64-bit OS from 32-bit EFI
 	if (gKernelArgs.kernel_image->elf_class == ELFCLASS64) {
 		gIsHybridPlatform = true;
 	}
+#endif
+
+#if B_HAIKU_BITS == 64
+#warning hybrid mode for loading 32-bit OS from 64-bit EFI
+	if (gKernelArgs.kernel_image->elf_class == ELFCLASS32) {
+		gIsHybridPlatform = true;
+	}
+#endif
 
 	smp_init_other_cpus();
 #ifdef _BOOT_FDT_SUPPORT
