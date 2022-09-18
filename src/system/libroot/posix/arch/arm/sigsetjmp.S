@@ -8,11 +8,18 @@
 /* int sigsetjmp(jmp_buf buffer, int saveMask) */
 FUNCTION(__sigsetjmp):
 FUNCTION(sigsetjmp):
-	stmia	r0, {r0-r14}
-	mrs	r1, cpsr
-	str	r1, [r0, #64]
-	ldr	r1, [r0, #4]
-	b	__setjmp_save_sigs
+	stm		r0, {r4-r14}
+
+	// Save FPU status
+	add		r2, r0, #44
+	vmrs	r3, fpscr
+	str		r3, [r2]
+
+	// Save FPU registers d8-d15
+	add		r2, r0, #48
+	fstmiad	r2!, {d8-d15}
+
+	b		__setjmp_save_sigs
 FUNCTION_END(sigsetjmp)
 FUNCTION_END(__sigsetjmp)
 
@@ -20,12 +27,8 @@ FUNCTION_END(__sigsetjmp)
 /* int setjmp(jmp_buf buffer) */
 FUNCTION(setjmp):
 FUNCTION(_setjmp):
-	stmia	r0, {r0-r14}
-	mrs	r1, cpsr
-	str	r1, [r0, #64]
-	ldr	r1, [r0, #4]
-	mov	r0, #0
-	bx	lr
+	mov		r1, #0
+	b		sigsetjmp
 FUNCTION_END(setjmp)
 
 #pragma weak _setjmp=setjmp
