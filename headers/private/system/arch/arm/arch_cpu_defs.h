@@ -9,7 +9,7 @@
 #define _SYSTEM_ARCH_ARM_DEFS_H
 
 
-#define SPINLOCK_PAUSE()	do {} while (false)
+#define SPINLOCK_PAUSE()	__asm__ __volatile__("yield")
 
 #define CPSR_MODE_MASK		0x1f
 #define CPSR_MODE_USR		0x10
