@@ -14,6 +14,7 @@
 #include "generic_mmu.h"
 #include "mmu.h"
 #include "serial.h"
+#include "smp.h"
 
 
 //#define TRACE_LONG_START
@@ -50,11 +51,13 @@ extern uint32_t arch_long_mmu_generate_post_efi_page_tables(size_t memoryMapSize
 	uint32_t descriptorVersion);
 
 
+gdt_idt_descr gLongGDTR;
+
 void
 arch_long_start_kernel(addr_t kernelEntry)
 {
-	gdt_idt_descr longBootGDTDescriptor;
-	arch_mmu_init_long_gdt(longBootGDTDescriptor);
+	//gdt_idt_descr longBootGDTDescriptor;
+	arch_mmu_init_long_gdt(gLongGDTR);
 
 	// Copy entry.S trampoline to lower 1M
 	enter_kernel_t enter_kernel = (enter_kernel_t)0xa000;
@@ -158,16 +161,16 @@ arch_long_start_kernel(addr_t kernelEntry)
 	// as there are some fixups happening to kernel_args even in the last minute
 	memcpy(kernelArgs, &gKernelArgs, sizeof(struct kernel_args));
 
-	//smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
+	smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
 
 	// Enter the kernel!
 	dprintf("long_enter_kernel(pageDirectory: 0x%08" PRIx32 ", kernelArgs: 0x%08" B_PRIxADDR ", "
 		"kernelEntry: 0x%08" B_PRIxADDR ", sp: 0x%08" B_PRIx64 ", longBootGDTDescriptor: %p)\n",
 		pageDirectory, virtKernelArgs, kernelEntry,
 		gKernelArgs.cpu_kstack[0].start + gKernelArgs.cpu_kstack[0].size,
-		&longBootGDTDescriptor);
+		&gLongGDTR);
 
 	enter_kernel(pageDirectory, virtKernelArgs, kernelEntry,
 		gKernelArgs.cpu_kstack[0].start + gKernelArgs.cpu_kstack[0].size,
-		&longBootGDTDescriptor);
+		&gLongGDTR);
 }

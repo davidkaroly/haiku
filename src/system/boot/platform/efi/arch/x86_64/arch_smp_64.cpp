@@ -54,8 +54,8 @@ struct long_trampoline_args {
 };
 
 
-void
-copy_trampoline_code(uint64 trampolineCode, uint64 trampolineStack)
+static void
+long_copy_trampoline_code(uint64 trampolineCode)
 {
 	TRACE("copying the trampoline code to %p from %p\n", (char*)trampolineCode, (const void*)&long_smp_trampoline);
 	TRACE("size of trampoline code = %" PRIu64 " bytes\n", (uint64)&long_smp_trampoline_end - (uint64)&long_smp_trampoline);
@@ -65,8 +65,8 @@ copy_trampoline_code(uint64 trampolineCode, uint64 trampolineStack)
 
 
 void
-prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
-	uint32 pagedir, uint64 kernelEntry, addr_t virtKernelArgs,
+long_prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
+	uint32 pagedir, uint64 kernelEntry, uint64 virtKernelArgs,
 	uint32 currentCpu)
 {
 	long_trampoline_args* args = (long_trampoline_args *)trampolineStack;
@@ -98,9 +98,15 @@ prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
 }
 
 
-uint32
-get_sentinel(uint64 trampolineStack)
+extern void arch_smp_boot_other_cpus_generic(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelArgs, volatile uint32* sentinel);
+
+
+void
+arch_smp_boot_other_cpus_64(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelArgs)
 {
-	long_trampoline_args* args = (long_trampoline_args *)trampolineStack;
-	return args->sentinel;
+	uint64 trampolineCode = 0x9000;
+	uint64 trampolineStack = 0x8000;
+	long_copy_trampoline_code(trampolineCode);
+
+	arch_smp_boot_other_cpus_generic(pageDir, kernelEntry, virtKernelArgs, (volatile uint32*)&((long_trampoline_args*)trampolineStack)->sentinel);
 }

@@ -38,11 +38,12 @@
 
 extern "C" void execute_n_instructions(int count);
 
-void copy_trampoline_code(uint64 trampolineCode, uint64 trampolineStack);
 void prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
 	uint32 pagedir, uint64 kernelEntry, addr_t virtKernelArgs,
 	uint32 currentCpu);
-uint32 get_sentinel(uint64 trampolineStack);
+
+void long_prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
+	uint32 pagedir, uint64 kernelEntry, uint64 virtKernelArgs, uint32 currentCpu);
 
 
 static uint32
@@ -108,7 +109,7 @@ acpi_do_smp_config(void)
 
 			case ACPI_MADT_IO_APIC: {
 				acpi_io_apic *ioApic = (acpi_io_apic *)apic;
-				TRACE("smp: found io APIC with id %" B_PRIu32 " and address 0x%" B_PRIx32 "\n",
+				TRACE("smp: found io APIC with id %" B_PRIu8 " and address 0x%" B_PRIx32 "\n",
 					ioApic->io_apic_id, ioApic->io_apic_address);
 				if (gKernelArgs.arch_args.ioapic_phys == 0)
 					gKernelArgs.arch_args.ioapic_phys = ioApic->io_apic_address;
@@ -232,7 +233,7 @@ arch_smp_init_other_cpus(void)
 
 
 void
-arch_smp_boot_other_cpus(uint32 pagedir, uint64 kernelEntry, addr_t virtKernelArgs)
+arch_smp_boot_other_cpus_generic(uint32 pagedir, uint64 kernelEntry, addr_t virtKernelArgs, volatile uint32* sentinel)
 {
 	TRACE("trampolining other cpus\n");
 
@@ -240,9 +241,6 @@ arch_smp_boot_other_cpus(uint32 pagedir, uint64 kernelEntry, addr_t virtKernelAr
 	// (these have to be < 1M physical, 0xa0000-0xfffff is reserved by the BIOS)
 	uint64 trampolineCode = 0x9000;
 	uint64 trampolineStack = 0x8000;
-
-	// copy the trampoline code over
-	copy_trampoline_code(trampolineCode, trampolineStack);
 
 	// boot the cpus
 	TRACE("we have %" B_PRId32 " CPUs to boot...\n", gKernelArgs.num_cpus - 1);
@@ -252,8 +250,17 @@ arch_smp_boot_other_cpus(uint32 pagedir, uint64 kernelEntry, addr_t virtKernelAr
 		uint64 numStartups;
 		uint32 j;
 
-		prepare_trampoline_args(trampolineCode, trampolineStack,
+#if B_HAIKU_BITS == 32
+		if (gIsHybridPlatform)
+			long_prepare_trampoline_args(trampolineCode, trampolineStack,
+				pagedir, kernelEntry | 0xffffffff00000000, (uint64_t) virtKernelArgs | 0xffffffff00000000, i);
+		else
+			prepare_trampoline_args(trampolineCode, trampolineStack,
+				pagedir, kernelEntry, virtKernelArgs, i);
+#else
+		long_prepare_trampoline_args(trampolineCode, trampolineStack,
 			pagedir, kernelEntry, virtKernelArgs, i);
+#endif
 
 		/* clear apic errors */
 		if (gKernelArgs.arch_args.cpu_apic_version[i] & 0xf0) {
@@ -315,11 +322,28 @@ arch_smp_boot_other_cpus(uint32 pagedir, uint64 kernelEntry, addr_t virtKernelAr
 		// Wait for the trampoline code to clear the final stack location.
 		// This serves as a notification for us that it has loaded the address
 		// and it is safe for us to overwrite it to trampoline the next CPU.
-		while (get_sentinel(trampolineStack) != 0)
+		while (*sentinel != 0)
 			spin(1000);
 	}
 
 	TRACE("done trampolining\n");
+}
+
+
+extern void arch_smp_boot_other_cpus_32(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelArgs);
+extern void arch_smp_boot_other_cpus_64(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelArgs);
+
+void
+arch_smp_boot_other_cpus(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelArgs)
+{
+#if B_HAIKU_BITS == 32
+	if (gIsHybridPlatform)
+		arch_smp_boot_other_cpus_64(pageDir, kernelEntry, virtKernelArgs);
+	else
+		arch_smp_boot_other_cpus_32(pageDir, kernelEntry, virtKernelArgs);
+#else
+	arch_smp_boot_other_cpus_64(pageDir, kernelEntry, virtKernelArgs);
+#endif
 }
 
 

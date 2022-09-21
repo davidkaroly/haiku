@@ -20,6 +20,7 @@ for platform in [ MultiBootSubDirSetup efi ] {
 			crt0-efi-$(TARGET_ARCH).S
 			entry.S
 			entry_long.S
+			long_smp_trampoline.S
 			smp_trampoline.S
 			support.S
 			relocation_func.cpp
@@ -28,6 +29,7 @@ for platform in [ MultiBootSubDirSetup efi ] {
 			arch_mmu.cpp
 			arch_smp.cpp
 			arch_smp_32.cpp
+			arch_smp_64.cpp
 			arch_start.cpp
 			arch_timer.cpp
 			;
@@ -43,5 +45,8 @@ for platform in [ MultiBootSubDirSetup efi ] {
 
 		SEARCH on [ FGristFiles $(generic_src) ]
 			= [ FDirName $(SUBDIR) $(DOTDOT) generic ] ;
+
+		SEARCH on [ FGristFiles long_smp_trampoline.S arch_smp_64.cpp ]
+			= [ FDirName $(SUBDIR) $(DOTDOT) x86_64 ] ;
 	}
 }
