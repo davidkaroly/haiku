@@ -258,8 +258,12 @@ arch_smp_boot_other_cpus_generic(uint32 pagedir, uint64 kernelEntry, addr_t virt
 			prepare_trampoline_args(trampolineCode, trampolineStack,
 				pagedir, kernelEntry, virtKernelArgs, i);
 #else
-		long_prepare_trampoline_args(trampolineCode, trampolineStack,
-			pagedir, kernelEntry, virtKernelArgs, i);
+		if (gIsHybridPlatform)
+			prepare_trampoline_args(trampolineCode, trampolineStack,
+				pagedir, kernelEntry, virtKernelArgs, i);
+		else
+			long_prepare_trampoline_args(trampolineCode, trampolineStack,
+				pagedir, kernelEntry, virtKernelArgs, i);
 #endif
 
 		/* clear apic errors */
@@ -342,7 +346,11 @@ arch_smp_boot_other_cpus(uint32 pageDir, uint64 kernelEntry, addr_t virtKernelAr
 	else
 		arch_smp_boot_other_cpus_32(pageDir, kernelEntry, virtKernelArgs);
 #else
-	arch_smp_boot_other_cpus_64(pageDir, kernelEntry, virtKernelArgs);
+	if (gIsHybridPlatform) {
+		arch_smp_boot_other_cpus_32(pageDir, kernelEntry, virtKernelArgs);
+}
+	else
+		arch_smp_boot_other_cpus_64(pageDir, kernelEntry, virtKernelArgs);
 #endif
 }
 

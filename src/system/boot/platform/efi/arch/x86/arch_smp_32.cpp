@@ -70,7 +70,7 @@ prepare_trampoline_args(uint64 trampolineCode, uint64 trampolineStack,
 	trampoline_args* args = (trampoline_args *)trampolineStack;
 	args->trampoline = trampolineCode;
 
-	args->gdt = (uint32) &args->gdtr;
+	args->gdt = (uint32)(addr_t) &args->gdtr;
 	args->gdtr.limit = 23;
 	args->gdtr.base = (uint32)(uint64)args->gdtr.null;
 	#define COPY_ARRAY(A, X0, X1, X2, X3, X4, X5, X6, X7) \

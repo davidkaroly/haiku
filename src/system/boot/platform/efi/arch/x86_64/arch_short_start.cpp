@@ -14,6 +14,7 @@
 #include "generic_mmu.h"
 #include "mmu.h"
 #include "serial.h"
+#include "smp.h"
 
 
 //#define TRACE_SHORT_START
@@ -158,7 +159,7 @@ arch_short_start_kernel(addr_t kernelEntry)
 	// as there are some fixups happening to kernel_args even in the last minute
 	memcpy(kernelArgs, &gKernelArgs, sizeof(struct kernel_args));
 
-	//smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
+	smp_boot_other_cpus(pageDirectory, kernelEntry, virtKernelArgs);
 
 	// Enter the kernel!
 	dprintf("short_enter_kernel(pageDirectory: 0x%08" PRIx32 ", kernelArgs: 0x%08" B_PRIxADDR ", "
