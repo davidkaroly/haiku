@@ -14,10 +14,11 @@
 #include <boot/stage2.h>
 #include <boot/stdio.h>
 
+#include "efi_platform.h"
+#include "generic_mmu.h"
 #include "mmu.h"
 #include "serial.h"
 #include "smp.h"
-#include "efi_platform.h"
 
 
 // From entry.S
@@ -40,46 +41,6 @@ arch_convert_kernel_args(void)
 	fix_address(gKernelArgs.ucode_data);
 	fix_address(gKernelArgs.arch_args.apic);
 	fix_address(gKernelArgs.arch_args.hpet);
-}
-
-
-static const char*
-memory_region_type_str(int type)
-{
-	switch (type)	{
-		case EfiReservedMemoryType:
-			return "EfiReservedMemoryType";
-		case EfiLoaderCode:
-			return "EfiLoaderCode";
-		case EfiLoaderData:
-			return "EfiLoaderData";
-		case EfiBootServicesCode:
-			return "EfiBootServicesCode";
-		case EfiBootServicesData:
-			return "EfiBootServicesData";
-		case EfiRuntimeServicesCode:
-			return "EfiRuntimeServicesCode";
-		case EfiRuntimeServicesData:
-			return "EfiRuntimeServicesData";
-		case EfiConventionalMemory:
-			return "EfiConventionalMemory";
-		case EfiUnusableMemory:
-			return "EfiUnusableMemory";
-		case EfiACPIReclaimMemory:
-			return "EfiACPIReclaimMemory";
-		case EfiACPIMemoryNVS:
-			return "EfiACPIMemoryNVS";
-		case EfiMemoryMappedIO:
-			return "EfiMemoryMappedIO";
-		case EfiMemoryMappedIOPortSpace:
-			return "EfiMemoryMappedIOPortSpace";
-		case EfiPalCode:
-			return "EfiPalCode";
-		case EfiPersistentMemory:
-			return "EfiPersistentMemory";
-		default:
-			return "unknown";
-	}
 }
 
 
