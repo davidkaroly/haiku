@@ -13,7 +13,7 @@
 #include "aarch64.h"
 #include "arch_mmu.h"
 
-// #define TRACE_MMU
+//#define TRACE_MMU
 #ifdef TRACE_MMU
 #	define TRACE(x...) dprintf(x)
 #else
@@ -271,6 +271,53 @@ map_range(addr_t virt_addr, phys_addr_t phys_addr, size_t size, uint64_t flags)
 }
 
 
+static void
+insert_virtual_range_to_keep(uint64 start, uint64 size)
+{
+	status_t status = insert_address_range(
+		gKernelArgs.arch_args.virtual_ranges_to_keep,
+		&gKernelArgs.arch_args.num_virtual_ranges_to_keep,
+		MAX_VIRTUAL_RANGES_TO_KEEP, start, size);
+
+	if (status == B_ENTRY_NOT_FOUND)
+		panic("too many virtual ranges to keep");
+	else if (status != B_OK)
+		panic("failed to add virtual range to keep");
+}
+
+
+static addr_t
+map_range_to_new_area(addr_t start, size_t size, uint64_t flags)
+{
+	if (size == 0)
+		return 0;
+
+	phys_addr_t physAddr = ROUNDDOWN(start, B_PAGE_SIZE);
+	size_t alignedSize = ROUNDUP(size + (start - physAddr), B_PAGE_SIZE);
+	addr_t virtAddr = get_next_virtual_address(alignedSize);
+
+	map_range(virtAddr, physAddr, alignedSize, flags);
+	insert_virtual_range_to_keep(virtAddr, alignedSize);
+
+	return virtAddr + (start - physAddr);
+}
+
+
+static void
+map_range_to_new_area(addr_range& range, uint64_t flags)
+{
+	range.start = map_range_to_new_area(range.start, range.size, flags);
+}
+
+
+static void
+map_range_to_new_area(efi_memory_descriptor *entry, uint64_t flags)
+{
+	uint64_t size = entry->NumberOfPages * B_PAGE_SIZE;
+	entry->VirtualStart = map_range_to_new_area(entry->PhysicalStart, size, flags);
+}
+
+
 void
 arch_mmu_init()
 {
@@ -378,9 +425,9 @@ arch_mmu_generate_post_efi_page_tables(size_t memory_map_size,
 	for (size_t i = 0; i < memory_map_size / descriptor_size; ++i) {
 		efi_memory_descriptor* entry = (efi_memory_descriptor*)(memory_map_addr + i * descriptor_size);
 		if ((entry->Attribute & EFI_MEMORY_RUNTIME) != 0)
-			map_range(entry->VirtualStart, entry->PhysicalStart,
-				entry->NumberOfPages * B_PAGE_SIZE,
-				ARMv8TranslationTableDescriptor::DefaultCodeAttribute | currentMair.MaskOf(MAIR_NORMAL_WB));
+			map_range_to_new_area(entry,
+				ARMv8TranslationTableDescriptor::DefaultCodeAttribute |
+				currentMair.MaskOf(MAIR_NORMAL_WB));
 	}
 
 	TRACE("Mapping \"next\" regions\n");
@@ -400,18 +447,9 @@ arch_mmu_generate_post_efi_page_tables(size_t memory_map_size,
 		ARMv8TranslationTableDescriptor::DefaultCodeAttribute
 		| currentMair.MaskOf(MAIR_NORMAL_WB));
 
-	if (gKernelArgs.arch_args.uart.kind[0] != 0) {
-		// Map uart because we want to use it during early boot.
-		uint64 regs_start = gKernelArgs.arch_args.uart.regs.start;
-		uint64 regs_size = ROUNDUP(gKernelArgs.arch_args.uart.regs.size, B_PAGE_SIZE);
-		uint64 base = get_next_virtual_address(regs_size);
-
-		map_range(base, regs_start, regs_size,
-			ARMv8TranslationTableDescriptor::DefaultPeripheralAttribute |
-			currentMair.MaskOf(MAIR_DEVICE_nGnRnE));
-
-		gKernelArgs.arch_args.uart.regs.start = base;
-	}
+	map_range_to_new_area(gKernelArgs.arch_args.uart.regs,
+		ARMv8TranslationTableDescriptor::DefaultPeripheralAttribute |
+		currentMair.MaskOf(MAIR_DEVICE_nGnRnE));
 
 	sort_address_ranges(gKernelArgs.virtual_allocated_range,
 		gKernelArgs.num_virtual_allocated_ranges);
