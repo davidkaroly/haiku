@@ -231,8 +231,8 @@ map_region(addr_t virt_addr, addr_t  phys_addr, size_t size,
 static void
 map_range(addr_t virt_addr, phys_addr_t phys_addr, size_t size, uint64_t flags)
 {
-	TRACE("map 0x%0lx --> 0x%0lx, len=0x%0lx, flags=0x%0lx\n",
-		(uint64_t)virt_addr, (uint64_t)phys_addr, (uint64_t)size, flags);
+	TRACE("map 0x%0" B_PRIxADDR " --> 0x%0" B_PRIxPHYSADDR ", len=0x%0" B_PRIxSIZE ", flags=0x%0lx\n",
+		virt_addr, phys_addr, size, flags);
 
 	// TODO: Review why we get ranges with 0 size ...
 	if (size == 0) {
@@ -261,11 +261,11 @@ map_range(addr_t virt_addr, phys_addr_t phys_addr, size_t size, uint64_t flags)
 		address = READ_SPECIALREG(TTBR0_EL1);
 	}
 
-	map_region(virt_addr, phys_addr, size, 0, flags, reinterpret_cast<uint64*>(address));
+	if (size < B_PAGE_SIZE)
+		size = B_PAGE_SIZE;
 
-// 	for (addr_t offset = 0; offset < size; offset += B_PAGE_SIZE) {
-// 		map_page(virt_addr + offset, phys_addr + offset, flags);
-// 	}
+	map_region(virt_addr, phys_addr, size, 0, flags,
+		reinterpret_cast<uint64*>(address));
 
 	ASSERT_ALWAYS(insert_virtual_allocated_range(virt_addr, size) >= B_OK);
 }
