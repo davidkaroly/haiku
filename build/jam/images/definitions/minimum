@@ -40,6 +40,7 @@ SYSTEM_APPS = [ FFilterByBuildFeatures
 	CharacterMap
 	Debugger@libedit DeskCalc Devices DiskProbe DiskUsage DriveSetup
 	Expander Installer
+	LaunchBox
 	NetworkStatus
 	ProcessController
 	ShowImage StyledEdit
