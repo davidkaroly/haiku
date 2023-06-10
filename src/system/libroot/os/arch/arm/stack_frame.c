@@ -14,7 +14,8 @@
 void*
 get_stack_frame(void)
 {
-	// TODO: Implement!
-	return NULL;
+	uint32 res;
+	asm volatile ("mov %0, fp": "=r" (res));
+	return (void*)res;
 }
 
