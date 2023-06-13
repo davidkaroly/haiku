@@ -8,6 +8,7 @@ local kernelArchSources =
 ;
 
 local kernelArchReusableSources =
+	arch_uart_bcm2835_aux.cpp
 	arch_uart_pl011.cpp
 ;
 
