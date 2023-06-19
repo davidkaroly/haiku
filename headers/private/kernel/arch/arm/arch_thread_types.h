@@ -53,6 +53,7 @@ struct arch_thread {
 
 	struct iframe*	userFrame;
 	uint32	oldR0;
+	uint32	oldR1;
 };
 
 struct arch_team {

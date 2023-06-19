@@ -279,6 +279,7 @@ arch_setup_signal_frame(Thread *thread, struct sigaction *sa,
 
 	// store oldR0 in syscall_restart_return_value
 	signalFrameData->syscall_restart_return_value = thread->arch_info.oldR0;
+	//TODO: handle 64-bit return value here
 
 	// get the stack to use -- that's either the current one or a special signal stack
 	uint8* userStack = get_signal_stack(thread, frame, sa,
@@ -318,6 +319,7 @@ arch_restore_signal_frame(struct signal_frame_data* signalFrameData)
 
 	thread_get_current_thread()->arch_info.oldR0
 		= signalFrameData->syscall_restart_return_value;
+	//TODO: handle 64-bit return value here
 
 	frame->r0     = signalFrameData->context.uc_mcontext.r0;
 	frame->r1     = signalFrameData->context.uc_mcontext.r1;
@@ -372,4 +374,12 @@ arch_restore_fork_frame(struct arch_fork_arg *arg)
 {
 	disable_interrupts();
 	arch_return_to_userland(&arg->frame);
+}
+
+
+void
+arch_syscall_64_bit_return_value(void)
+{
+	Thread* thread = thread_get_current_thread();
+	atomic_or(&thread->flags, THREAD_FLAGS_64_BIT_SYSCALL_RETURN);
 }

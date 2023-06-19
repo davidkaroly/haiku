@@ -38,6 +38,10 @@ arch_thread_set_current_thread(Thread *t)
 	asm volatile("MCR p15, 0, %0, c13, c0, 4" : : "r" (t));
 }
 
+#undef arch_syscall_64_bit_return_value
+void arch_syscall_64_bit_return_value(void);
+
+
 #ifdef __cplusplus
 }
 #endif

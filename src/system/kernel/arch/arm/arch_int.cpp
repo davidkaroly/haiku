@@ -270,6 +270,7 @@ arch_arm_syscall(struct iframe *iframe)
 
 	thread_get_current_thread()->arch_info.userFrame = iframe;
 	thread_get_current_thread()->arch_info.oldR0 = iframe->r0;
+	thread_get_current_thread()->arch_info.oldR1 = iframe->r1;
 	thread_at_kernel_entry(system_time());
 
 	enable_interrupts();
@@ -279,6 +280,10 @@ arch_arm_syscall(struct iframe *iframe)
 
 	TRACE("returning %" B_PRId64 "\n", returnValue);
 	iframe->r0 = returnValue;
+	if ((thread_get_current_thread()->flags & THREAD_FLAGS_64_BIT_SYSCALL_RETURN) != 0) {
+		iframe->r1 = returnValue>>32;
+		atomic_and(&thread_get_current_thread()->flags, ~THREAD_FLAGS_64_BIT_SYSCALL_RETURN);
+	}
 
 	disable_interrupts();
 	atomic_and(&thread_get_current_thread()->flags, ~THREAD_FLAGS_SYSCALL_RESTARTED);
@@ -293,6 +298,7 @@ arch_arm_syscall(struct iframe *iframe)
 		atomic_and(&thread_get_current_thread()->flags, ~THREAD_FLAGS_RESTART_SYSCALL);
 		atomic_or(&thread_get_current_thread()->flags, THREAD_FLAGS_SYSCALL_RESTARTED);
 		iframe->r0 = thread_get_current_thread()->arch_info.oldR0;
+		iframe->r1 = thread_get_current_thread()->arch_info.oldR1;
 		iframe->pc -= 4;
 	}
 
