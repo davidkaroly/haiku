@@ -1031,7 +1031,7 @@ DwarfFile::_ParseDebugInfoSection(uint8 _addressSize, bool isBigEndian)
 			", abbrevOffset: %" B_PRIdOFF ", address size: %d\n",
 			dwarf64 ? 64 : 32, version, unitLength, abbrevOffset, addressSize);
 
-		if (version < 2 || version > 4) {
+		if (version < 2 || version > 5) {
 			WARNING("\"%s\": Unsupported compilation unit version: %d\n",
 				fName, version);
 			break;
