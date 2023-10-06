@@ -155,7 +155,7 @@ static const attribute_name_info_entry kAttributeNameInfos[] = {
 	{ ENTRY(call_all_tail_calls),	AC_FLAG },
 	{ ENTRY(call_return_pc),		AC_ADDRESS },
 	{ ENTRY(call_value),			AC_BLOCK },
-	{ ENTRY(call_origin),			AC_BLOCK },
+	{ ENTRY(call_origin),			AC_BLOCK | AC_REFERENCE },
 	{ ENTRY(call_parameter),		AC_REFERENCE },
 	{ ENTRY(call_pc),				AC_ADDRESS },
 	{ ENTRY(call_tail_call),		AC_FLAG },
