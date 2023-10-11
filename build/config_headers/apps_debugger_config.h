@@ -16,6 +16,9 @@
 // dump DWARF public types section
 #define	APPS_DEBUGGER_TRACE_DWARF_PUBLIC_TYPES	0
 
+// trace DWARF range lists
+#define APPS_DEBUGGER_TRACE_DWARF_RNG_LISTS		0
+
 // trace (DWARF) canonical frame info parsing/evaluation
 #define	APPS_DEBUGGER_TRACE_CFI					0
 

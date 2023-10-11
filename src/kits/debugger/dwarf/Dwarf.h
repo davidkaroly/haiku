@@ -601,6 +601,18 @@ enum {
     DW_CFA_GNU_negative_offset_extended	= 0x2f
 };
 
+// range list entry
+enum {
+	DW_RLE_end_of_list			= 0x00,
+	DW_RLE_base_addressx		= 0x01,
+	DW_RLE_startx_endx			= 0x02,
+	DW_RLE_startx_length		= 0x03,
+	DW_RLE_offset_pair			= 0x04,
+	DW_RLE_base_address			= 0x05,
+	DW_RLE_start_end			= 0x06,
+	DW_RLE_start_length			= 0x07,
+};
+
 // unit type
 enum {
 	DW_UT_compile				= 0x01,

@@ -55,6 +55,14 @@
 #	define TRACE_PUBTYPES_ONLY(x)
 #endif
 
+#if APPS_DEBUGGER_TRACE_DWARF_RNG_LISTS
+#	define TRACE_RNG_LISTS(x...)	printf(x)
+#	define TRACE_RNG_LISTS_ONLY(x)	x
+#else
+#	define TRACE_RNG_LISTS(x...)	(void)0
+#	define TRACE_RNG_LISTS_ONLY(x)
+#endif
+
 #if APPS_DEBUGGER_TRACE_CFI
 #	define TRACE_CFI(x...)		printf(x)
 #	define TRACE_CFI_ONLY(x)	x

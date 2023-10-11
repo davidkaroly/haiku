@@ -209,6 +209,10 @@ private:
 									target_addr_t offset,
 									const FDEInfoList& infoList) const;
 
+			TargetAddressRangeList* _ResolveRangeListRanges(CompilationUnit* unit,
+									uint64 offset) const;
+			TargetAddressRangeList* _ResolveRangeListRngLists(CompilationUnit* unit,
+									uint64 offset) const;
 private:
 			friend struct 		DwarfFile::ExpressionEvaluationContext;
 
@@ -223,6 +227,7 @@ private:
 			ElfSection*			fDebugStringSection;
 			ElfSection*			fDebugStrOffsetsSection;
 			ElfSection*			fDebugRangesSection;
+			ElfSection*			fDebugRngListsSection;
 			ElfSection*			fDebugLineSection;
 			ElfSection*			fDebugLineStrSection;
 			ElfSection*			fDebugFrameSection;

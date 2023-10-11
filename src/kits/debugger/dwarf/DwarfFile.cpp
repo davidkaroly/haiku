@@ -496,6 +496,7 @@ DwarfFile::DwarfFile()
 	fDebugStringSection(NULL),
 	fDebugStrOffsetsSection(NULL),
 	fDebugRangesSection(NULL),
+	fDebugRngListsSection(NULL),
 	fDebugLineSection(NULL),
 	fDebugLineStrSection(NULL),
 	fDebugFrameSection(NULL),
@@ -530,6 +531,7 @@ DwarfFile::~DwarfFile()
 		debugInfoFile->PutSection(fDebugStringSection);
 		debugInfoFile->PutSection(fDebugStrOffsetsSection);
 		debugInfoFile->PutSection(fDebugRangesSection);
+		debugInfoFile->PutSection(fDebugRngListsSection);
 		debugInfoFile->PutSection(fDebugLineSection);
 		debugInfoFile->PutSection(fDebugLineStrSection);
 		debugInfoFile->PutSection(fDebugFrameSection);
@@ -596,6 +598,7 @@ DwarfFile::Load(uint8 addressSize, bool isBigEndian, const BString& externalInfo
 	fDebugStringSection = debugInfoFile->GetSection(".debug_str");
 	fDebugStrOffsetsSection = debugInfoFile->GetSection(".debug_str_offsets");
 	fDebugRangesSection = debugInfoFile->GetSection(".debug_ranges");
+	fDebugRngListsSection = debugInfoFile->GetSection(".debug_rnglists");
 	fDebugLineSection = debugInfoFile->GetSection(".debug_line");
 	fDebugLineStrSection = debugInfoFile->GetSection(".debug_line_str");
 	fDebugFrameSection = debugInfoFile->GetSection(".debug_frame");
@@ -720,8 +723,109 @@ DwarfFile::CompilationUnitForDIE(const DebugInfoEntry* entry) const
 TargetAddressRangeList*
 DwarfFile::ResolveRangeList(CompilationUnit* unit, uint64 offset) const
 {
-	if (unit == NULL || fDebugRangesSection == NULL)
+	if (unit == NULL)
 		return NULL;
+
+	if (fDebugRngListsSection != NULL)
+		return _ResolveRangeListRngLists(unit, offset);
+	else if (fDebugRangesSection != NULL)
+		return _ResolveRangeListRanges(unit, offset);
+	else
+		return NULL;
+}
+
+
+TargetAddressRangeList*
+DwarfFile::_ResolveRangeListRngLists(CompilationUnit* unit, uint64 offset) const
+{
+	TRACE_RNG_LISTS("_ResolveRangeListRngLists(offset=0x%08" B_PRIx64 ")\n", offset);
+
+	if (offset >= (uint64)fDebugRngListsSection->Size())
+		return NULL;
+
+	TargetAddressRangeList* ranges = new(std::nothrow) TargetAddressRangeList;
+	if (ranges == NULL) {
+		ERROR("Out of memory.\n");
+		return NULL;
+	}
+	BReference<TargetAddressRangeList> rangesReference(ranges, true);
+
+	target_addr_t baseAddress = unit->AddressRangeBase();
+
+	DataReader dataReader((uint8*)fDebugRngListsSection->Data() + offset,
+		fDebugRngListsSection->Size() - offset, unit->AddressSize());
+	while (true) {
+		uint8 entryType = dataReader.Read<uint8>(0);
+		if (dataReader.HasOverflow())
+			return NULL;
+
+		target_addr_t start;
+		target_addr_t end;
+
+		TRACE_RNG_LISTS("_ResolveRangeListRngLists: entryType=%u\n", entryType);
+		switch (entryType) {
+			case DW_RLE_end_of_list:
+				start = end = 0;
+				break;
+
+			case DW_RLE_base_addressx:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), baseAddress);
+				continue;
+
+			case DW_RLE_startx_endx:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), start);
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), end);
+				break;
+
+			case DW_RLE_startx_length:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), start);
+				end = start + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			case DW_RLE_offset_pair:
+				start = baseAddress + dataReader.ReadUnsignedLEB128(0);
+				end = baseAddress + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			case DW_RLE_base_address:
+				baseAddress = dataReader.ReadAddress(0);
+				continue;
+
+			case DW_RLE_start_end:
+				start = dataReader.ReadAddress(0);
+				end = dataReader.ReadAddress(0);
+				break;
+
+			case DW_RLE_start_length:
+				start = dataReader.ReadAddress(0);
+				end = start + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			default:
+				TRACE_RNG_LISTS("_ResolveRangeListRngLists: unknown range list entry type %u\n", entryType);
+				return NULL;
+		}
+
+		if (start == 0 && end == 0)
+			break;
+
+		TRACE_RNG_LISTS("_ResolveRangeListRngLists: add range 0x%08" B_PRIxADDR " - 0x%08" B_PRIxADDR "\n",
+			start, end);
+
+		if (!ranges->AddRange(baseAddress + start, end - start)) {
+			ERROR("Out of memory.\n");
+			return NULL;
+		}
+	}
+
+	return rangesReference.Detach();
+}
+
+
+TargetAddressRangeList*
+DwarfFile::_ResolveRangeListRanges(CompilationUnit* unit, uint64 offset) const
+{
+	TRACE_RNG_LISTS("_ResolveRangeListRanges(offset=0x%08" B_PRIx64 ")\n", offset);
 
 	if (offset >= (uint64)fDebugRangesSection->Size())
 		return NULL;
@@ -752,6 +856,9 @@ DwarfFile::ResolveRangeList(CompilationUnit* unit, uint64 offset) const
 		}
 		if (start == end)
 			continue;
+
+		TRACE_RNG_LISTS("_ResolveRangeListRanges: add range 0x%08" B_PRIxADDR " - 0x%08" B_PRIxADDR "\n",
+			start, end);
 
 		if (!ranges->AddRange(baseAddress + start, end - start)) {
 			ERROR("Out of memory.\n");
@@ -1773,6 +1880,26 @@ DwarfFile::_ParseEntryAttributes(DataReader& dataReader,
 					? dataReader.Read<uint64>(0)
 					: (uint64)dataReader.Read<uint32>(0);
 				break;
+			case DW_FORM_rnglistx:
+				if (fDebugRngListsSection != NULL) {
+					uint64 index = dataReader.ReadUnsignedLEB128(0);
+					uint64 offsetSize = unit->IsDwarf64() ? 8 : 4;
+					uint64 rngOffsetsBase = unit->IsDwarf64() ? 20 : 12;
+					const char *rngOffsets = (const char*)fDebugRngListsSection->Data()+rngOffsetsBase;
+					uint64 count = *(uint32*)(rngOffsets-4);
+					if (index >= count || (rngOffsetsBase + index * offsetSize) >= fDebugRngListsSection->Size()) {
+						WARNING("Invalid DW_FORM_rnglistx index: %" B_PRIu64 "\n",
+							index);
+						return B_BAD_DATA;
+					}
+					value = rngOffsetsBase + unit->IsDwarf64()
+						? ((uint64*)rngOffsets)[index]
+						: ((uint32*)rngOffsets)[index];
+					break;
+				} else {
+					WARNING("Invalid DW_FORM_rnglistx: no debug_rnglists section!\n");
+					return B_BAD_DATA;
+				}
 			case DW_FORM_strx1:
 			case DW_FORM_strx2:
 			case DW_FORM_strx3:
