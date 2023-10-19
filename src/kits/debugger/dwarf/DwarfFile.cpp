@@ -502,6 +502,7 @@ DwarfFile::DwarfFile()
 	fDebugFrameSection(NULL),
 	fEHFrameSection(NULL),
 	fDebugLocationSection(NULL),
+	fDebugLocListsSection(NULL),
 	fDebugPublicTypesSection(NULL),
 	fDebugTypesSection(NULL),
 	fCompilationUnits(20, true),
@@ -537,6 +538,7 @@ DwarfFile::~DwarfFile()
 		debugInfoFile->PutSection(fDebugFrameSection);
 		fElfFile->PutSection(fEHFrameSection);
 		debugInfoFile->PutSection(fDebugLocationSection);
+		debugInfoFile->PutSection(fDebugLocListsSection);
 		debugInfoFile->PutSection(fDebugPublicTypesSection);
 		delete fElfFile;
 		delete fAlternateElfFile;
@@ -626,6 +628,7 @@ DwarfFile::Load(uint8 addressSize, bool isBigEndian, const BString& externalInfo
 	}
 
 	fDebugLocationSection = debugInfoFile->GetSection(".debug_loc");
+	fDebugLocListsSection = debugInfoFile->GetSection(".debug_loclists");
 	fDebugPublicTypesSection = debugInfoFile->GetSection(".debug_pubtypes");
 
 	if (fDebugInfoSection == NULL) {
@@ -1880,6 +1883,26 @@ DwarfFile::_ParseEntryAttributes(DataReader& dataReader,
 					? dataReader.Read<uint64>(0)
 					: (uint64)dataReader.Read<uint32>(0);
 				break;
+			case DW_FORM_loclistx:
+				if (fDebugLocListsSection != NULL) {
+					uint64 index = dataReader.ReadUnsignedLEB128(0);
+					uint64 offsetSize = unit->IsDwarf64() ? 8 : 4;
+					uint64 locOffsetsBase = unit->IsDwarf64() ? 20 : 12;
+					const char *locOffsets = (const char*)fDebugLocListsSection->Data()+locOffsetsBase;
+					uint64 count = *(uint32*)(locOffsets-4);
+					if (index >= count || (locOffsetsBase + index * offsetSize) >= fDebugLocListsSection->Size()) {
+						WARNING("Invalid DW_FORM_loclistx index: %" B_PRIu64 "\n",
+							index);
+						return B_BAD_DATA;
+					}
+					value = locOffsetsBase + unit->IsDwarf64()
+						? ((uint64*)locOffsets)[index]
+						: ((uint32*)locOffsets)[index];
+					break;
+				} else {
+					WARNING("Invalid DW_FORM_loclistx: no debug_loclists section!\n");
+					return B_BAD_DATA;
+				}
 			case DW_FORM_rnglistx:
 				if (fDebugRngListsSection != NULL) {
 					uint64 index = dataReader.ReadUnsignedLEB128(0);
@@ -3292,8 +3315,123 @@ DwarfFile::_FindLocationExpression(CompilationUnit* unit, uint64 offset,
 	if (unit == NULL)
 		return B_BAD_VALUE;
 
-	if (fDebugLocationSection == NULL)
+
+	if (fDebugLocListsSection != NULL)
+		return _FindLocationExpressionLocLists(unit, offset,
+			address, _expression, _length);
+	else if (fDebugLocationSection != NULL)
+		return _FindLocationExpressionLoc(unit, offset,
+			address, _expression, _length);
+	else
 		return B_ENTRY_NOT_FOUND;
+}
+
+
+status_t
+DwarfFile::_FindLocationExpressionLocLists(CompilationUnit* unit, uint64 offset,
+	target_addr_t address, const void*& _expression, off_t& _length) const
+{
+	TRACE_LOC_LISTS("_FindLocationExpressionLocLists(offset=0x%08" B_PRIx64 ",address=0x%08" B_PRIxADDR ")\n",
+		offset, address);
+
+	if (offset < 0 || offset >= (uint64)fDebugLocListsSection->Size())
+		return B_BAD_DATA;
+
+	target_addr_t baseAddress = unit->AddressRangeBase();
+	target_addr_t maxAddress = unit->MaxAddress();
+
+	DataReader dataReader((uint8*)fDebugLocListsSection->Data() + offset,
+		fDebugLocListsSection->Size() - offset, unit->AddressSize());
+	while (true) {
+		uint8 entryType = dataReader.Read<uint8>(0);
+		if (dataReader.HasOverflow())
+			return B_BAD_DATA;
+
+		target_addr_t start;
+		target_addr_t end;
+
+		TRACE_LOC_LISTS("_FindLocationExpressionLocLists: entryType=%u\n", entryType);
+		switch (entryType){
+			case DW_LLE_end_of_list:
+				start = end = 0;
+				TRACE_LOC_LISTS("_FindLocationExpressionLocLists: end of list\n");
+				break;
+
+			case DW_LLE_base_addressx:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), baseAddress);
+				TRACE_LOC_LISTS("_FindLocationExpressionLocLists: baseAddressx=0x%08" B_PRIxADDR "\n", baseAddress);
+				continue;
+
+			case DW_LLE_startx_endx:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), start);
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), end);
+				break;
+
+			case DW_LLE_startx_length:
+				_ReadAddressIndirect(unit, dataReader.ReadUnsignedLEB128(0), start);
+				end = start + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			case DW_LLE_offset_pair:
+				start = baseAddress + dataReader.ReadUnsignedLEB128(0);
+				end = baseAddress + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			case DW_LLE_default_location:
+				start = 0;
+				end = maxAddress;
+				break;
+
+			case DW_LLE_base_address:
+				baseAddress = dataReader.ReadAddress(0);
+				TRACE_LOC_LISTS("_FindLocationExpressionLocLists: baseAddress=0x%08" B_PRIxADDR "\n", baseAddress);
+				continue;
+
+			case DW_LLE_start_end:
+				start = dataReader.ReadAddress(0);
+				end = dataReader.ReadAddress(0);
+				 break;
+
+			case DW_LLE_start_length:
+				start = dataReader.ReadAddress(0);
+				end = start + dataReader.ReadUnsignedLEB128(0);
+				break;
+
+			default:
+				TRACE_LOC_LISTS("_FindLocationExpressionLocLists: unknown range list entry type %u\n", entryType);
+				return B_BAD_DATA;
+		}
+
+		if (start == 0 && end == 0)
+			return B_ENTRY_NOT_FOUND;
+
+		TRACE_LOC_LISTS("_FindLocationExpressionLocLists: start=0x%08" B_PRIxADDR " end=0x%08" B_PRIxADDR "\n",
+			start, end);
+
+		uint64 expressionLength = dataReader.ReadUnsignedLEB128(0);
+		TRACE_LOC_LISTS("_FindLocationExpressionLocLists: expressionLength=%" B_PRIu64 "\n", expressionLength);
+
+		const void* expression = dataReader.Data();
+		if (!dataReader.Skip(expressionLength)) {
+			TRACE_LOC_LISTS("_FindLocationExpressionLocLists: skip failed\n");
+			return B_BAD_DATA;
+		}
+
+		if (address >= start && address < end) {
+			_expression = expression;
+			_length = expressionLength;
+			return B_OK;
+		}
+	}
+}
+
+
+status_t
+DwarfFile::_FindLocationExpressionLoc(CompilationUnit* unit, uint64 offset,
+	target_addr_t address, const void*& _expression, off_t& _length) const
+{
+	TRACE_LOC_LISTS("_FindLocationExpressionLoc(offset=0x%08" B_PRIx64 ",address=0x%08" B_PRIxADDR ")\n",
+		offset, address);
 
 	if (offset < 0 || offset >= (uint64)fDebugLocationSection->Size())
 		return B_BAD_DATA;

@@ -47,6 +47,14 @@
 #	define TRACE_EXPR_ONLY(x)
 #endif
 
+#if APPS_DEBUGGER_TRACE_DWARF_LOC_LISTS
+#	define TRACE_LOC_LISTS(x...)	printf(x)
+#	define TRACE_LOC_LISTS_ONLY(x)	x
+#else
+#	define TRACE_LOC_LISTS(x...)	(void)0
+#	define TRACE_LOC_LISTS_ONLY(x)
+#endif
+
 #if APPS_DEBUGGER_TRACE_DWARF_PUBLIC_TYPES
 #	define TRACE_PUBTYPES(x...)	printf(x)
 #	define TRACE_PUBTYPES_ONLY(x)	x

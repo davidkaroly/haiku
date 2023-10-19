@@ -190,6 +190,14 @@ private:
 									uint64 offset, target_addr_t address,
 									const void*& _expression,
 									off_t& _length) const;
+			status_t			_FindLocationExpressionLoc(CompilationUnit* unit,
+									uint64 offset, target_addr_t address,
+									const void*& _expression,
+									off_t& _length) const;
+			status_t			_FindLocationExpressionLocLists(CompilationUnit* unit,
+									uint64 offset, target_addr_t address,
+									const void*& _expression,
+									off_t& _length) const;
 
 			status_t			_LocateDebugInfo(
 									BString& _requiredExternalFileName,
@@ -233,6 +241,7 @@ private:
 			ElfSection*			fDebugFrameSection;
 			ElfSection*			fEHFrameSection;
 			ElfSection*			fDebugLocationSection;
+			ElfSection*			fDebugLocListsSection;
 			ElfSection*			fDebugPublicTypesSection;
 			ElfSection*			fDebugTypesSection;
 			AbbreviationTableList fAbbreviationTables;

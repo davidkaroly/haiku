@@ -13,6 +13,9 @@
 // trace DWARF expression evaluation
 #define	APPS_DEBUGGER_TRACE_DWARF_EXPRESSIONS	0
 
+// trace DWARF location lists
+#define APPS_DEBUGGER_TRACE_DWARF_LOC_LISTS		0
+
 // dump DWARF public types section
 #define	APPS_DEBUGGER_TRACE_DWARF_PUBLIC_TYPES	0
 
